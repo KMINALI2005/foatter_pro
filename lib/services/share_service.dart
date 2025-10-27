@@ -1,11 +1,12 @@
-import 'package:share_plus/share_plus.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart'; // ==== تم إضافة هذا السطر لحل الخطأ ====
+import 'package:pdf/google_fonts.dart'; // ==== تم إضافة هذا السطر لمنع خطأ مستقبلي ====
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
 import '../models/invoice_model.dart';
-import '../utils/helpers.dart';
 import '../utils/constants.dart';
+import '../utils/helpers.dart';
 
 class ShareService {
   static final ShareService instance = ShareService._init();
@@ -13,6 +14,7 @@ class ShareService {
 
   Future<void> shareInvoiceAsText(Invoice invoice) async {
     final text = _formatInvoiceText(invoice);
+    // ==== تم التحديث هنا ====
     await Share.share(text, subject: 'فاتورة رقم ${invoice.invoiceNumber}');
   }
 
@@ -23,6 +25,7 @@ class ShareService {
       final file = File('${output.path}/فاتورة_${invoice.invoiceNumber}.pdf');
       await file.writeAsBytes(await pdf.save());
       
+      // ==== تم التحديث هنا ====
       await Share.shareXFiles(
         [XFile(file.path)],
         subject: 'فاتورة رقم ${invoice.invoiceNumber}',
@@ -35,8 +38,6 @@ class ShareService {
 
   Future<void> shareToWhatsApp(Invoice invoice, {String? phoneNumber}) async {
     final text = _formatInvoiceText(invoice);
-    // WhatsApp sharing logic is complex and often better handled by specific plugins,
-    // for now, we'll use the generic share which allows the user to pick WhatsApp.
     await Share.share(text);
   }
 
@@ -92,7 +93,6 @@ class ShareService {
     if (invoice.previousBalance > 0) {
       buffer.writeln('الحساب السابق: ${Helpers.formatCurrency(invoice.previousBalance)}');
       buffer.writeln('─────────────────────────');
-      // ==== تم التعديل هنا ====
       buffer.writeln('الإجمالي الكلي: ${Helpers.formatCurrency(invoice.totalWithPrevious)}');
     }
     
@@ -116,7 +116,6 @@ class ShareService {
   String _formatCustomerStatementText(String customerName, List<Invoice> invoices) {
     final buffer = StringBuffer();
     
-    // ==== تم التعديل هنا ====
     final totalAmount = invoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
     final paidAmount = invoices.fold(0.0, (sum, inv) => sum + inv.amountPaid);
     final remainingAmount = invoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
@@ -142,7 +141,6 @@ class ShareService {
       final invoice = invoices[i];
       buffer.writeln('\n${i + 1}. فاتورة #${invoice.invoiceNumber}');
       buffer.writeln('   التاريخ: ${Helpers.formatDate(invoice.invoiceDate)}');
-      // ==== تم التعديل هنا ====
       buffer.writeln('   الإجمالي: ${Helpers.formatCurrency(invoice.totalWithPrevious)}');
       buffer.writeln('   المدفوع: ${Helpers.formatCurrency(invoice.amountPaid)}');
       buffer.writeln('   المتبقي: ${Helpers.formatCurrency(invoice.remainingBalance)}');
@@ -159,7 +157,6 @@ class ShareService {
   Future<pw.Document> _generateInvoicePDF(Invoice invoice) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.cairoRegular();
-    // Use the same font for bold if specific bold font fails to load
     final fontBold = await PdfGoogleFonts.cairoBold();
 
     pdf.addPage(
@@ -168,8 +165,6 @@ class ShareService {
         textDirection: pw.TextDirection.rtl,
         theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (context) {
-          // You can reuse the widgets from PrintService to build the PDF here
-          // This is a simplified version for now
           return pw.Center(
             child: pw.Text('فاتورة رقم ${invoice.invoiceNumber}'),
           );
@@ -181,7 +176,7 @@ class ShareService {
 
   Future<pw.Document> _generateStatementPDF(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
-    // PDF generation logic here, similar to PrintService
+    
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
