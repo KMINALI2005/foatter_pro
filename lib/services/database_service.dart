@@ -372,8 +372,9 @@ class DatabaseService {
       totalRemaining += invoice.remainingBalance;
     }
     
-    final totalPrevious = (totals.first['total_previous'] as double?) ?? 0.0;
-    final totalPaid = (totals.first['total_paid'] as double?) ?? 0.0;
+    // استخدام as num ثم toDouble() لتجنب أخطاء النوع
+    final totalPrevious = (totals.first['total_previous'] as num?)?.toDouble() ?? 0.0;
+    final totalPaid = (totals.first['total_paid'] as num?)?.toDouble() ?? 0.0;
 
     return {
       'customersCount': customersCount.first['count'] as int,
@@ -388,7 +389,14 @@ class DatabaseService {
 
   Future<double> getCustomerBalance(String customerName) async {
     final invoices = await getInvoicesByCustomer(customerName);
-    return invoices.fold(0.0, (sum, invoice) => sum + invoice.remainingBalance);
+    // ==== تم إصلاح المشكلة هنا ====
+    // تم تغيير طريقة حساب المجموع لتجنب خطأ 'FutureOr<double>'
+    // هذه الطريقة أكثر أماناً ووضوحاً
+    double sum = 0.0;
+    for (final invoice in invoices) {
+      sum += invoice.remainingBalance;
+    }
+    return sum;
   }
 
   // إغلاق قاعدة البيانات
