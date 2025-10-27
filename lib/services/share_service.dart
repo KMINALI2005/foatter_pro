@@ -1,7 +1,7 @@
 import 'dart:io';
+import 'package:flutter/services.dart'; // ==== تم إضافة هذا السطر ====
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart'; // ==== تم إضافة هذا السطر لحل الخطأ ====
-import 'package:pdf/google_fonts.dart'; // ==== تم إضافة هذا السطر لمنع خطأ مستقبلي ====
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import '../models/invoice_model.dart';
@@ -14,7 +14,6 @@ class ShareService {
 
   Future<void> shareInvoiceAsText(Invoice invoice) async {
     final text = _formatInvoiceText(invoice);
-    // ==== تم التحديث هنا ====
     await Share.share(text, subject: 'فاتورة رقم ${invoice.invoiceNumber}');
   }
 
@@ -25,7 +24,6 @@ class ShareService {
       final file = File('${output.path}/فاتورة_${invoice.invoiceNumber}.pdf');
       await file.writeAsBytes(await pdf.save());
       
-      // ==== تم التحديث هنا ====
       await Share.shareXFiles(
         [XFile(file.path)],
         subject: 'فاتورة رقم ${invoice.invoiceNumber}',
@@ -63,6 +61,7 @@ class ShareService {
   }
 
   String _formatInvoiceText(Invoice invoice) {
+    // ... محتوى هذه الدالة يبقى كما هو ...
     final buffer = StringBuffer();
     
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -114,6 +113,7 @@ class ShareService {
   }
 
   String _formatCustomerStatementText(String customerName, List<Invoice> invoices) {
+    // ... محتوى هذه الدالة يبقى كما هو ...
     final buffer = StringBuffer();
     
     final totalAmount = invoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
@@ -154,17 +154,24 @@ class ShareService {
     return buffer.toString();
   }
 
+  // ==== تم تعديل هذه الدالة بالكامل ====
   Future<pw.Document> _generateInvoicePDF(Invoice invoice) async {
     final pdf = pw.Document();
-    final font = await PdfGoogleFonts.cairoRegular();
-    final fontBold = await PdfGoogleFonts.cairoBold();
+    
+    // استخدام الخطوط المحلية المحملة مع التطبيق
+    final fontData = await rootBundle.load('asset/fonts/Cairo-Regular.ttf');
+    final ttf = pw.Font.ttf(fontData.buffer.asByteData());
+    
+    final fontDataBold = await rootBundle.load('asset/fonts/Cairo-Bold.ttf');
+    final ttfBold = pw.Font.ttf(fontDataBold.buffer.asByteData());
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
-        theme: pw.ThemeData.withFont(base: font, bold: fontBold),
+        theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
         build: (context) {
+          // يمكنك لاحقاً إضافة تصميم كامل هنا مشابه لـ PrintService
           return pw.Center(
             child: pw.Text('فاتورة رقم ${invoice.invoiceNumber}'),
           );
@@ -174,13 +181,22 @@ class ShareService {
     return pdf;
   }
 
+  // ==== تم تعديل هذه الدالة بالكامل ====
   Future<pw.Document> _generateStatementPDF(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
     
+    // استخدام الخطوط المحلية المحملة مع التطبيق
+    final fontData = await rootBundle.load('asset/fonts/Cairo-Regular.ttf');
+    final ttf = pw.Font.ttf(fontData.buffer.asByteData());
+    
+    final fontDataBold = await rootBundle.load('asset/fonts/Cairo-Bold.ttf');
+    final ttfBold = pw.Font.ttf(fontDataBold.buffer.asByteData());
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
         build: (context) => pw.Center(
           child: pw.Text('كشف حساب $customerName'),
         ),
