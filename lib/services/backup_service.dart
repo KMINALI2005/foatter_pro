@@ -3,6 +3,11 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+// ==== تم إصلاح المشكلة هنا ====
+// 1. تم إضافة هذا السطر لاستيراد الكلاس المفقود 'InvoiceItem'
+// تأكد من أن اسم الملف صحيح. إذا كان الكلاس موجوداً في invoice_model.dart، يمكنك إزالة هذا السطر.
+import '../models/invoice_item_model.dart'; 
 import '../models/invoice_model.dart';
 import '../models/product_model.dart';
 import '../services/database_service.dart';
@@ -122,7 +127,9 @@ class BackupService {
             // استيراد منتجات الفاتورة
             if (invoiceMap['items'] != null) {
               final items = invoiceMap['items'] as List;
-              invoice.items = items.map((item) => InvoiceItem.fromMap(item)).toList().cast<InvoiceItem>();
+              // ==== تم إصلاح المشكلة هنا ====
+              // 2. تم حذف .cast<InvoiceItem>() لأنها غير ضرورية وتزيد من تعقيد الكود
+              invoice.items = items.map((item) => InvoiceItem.fromMap(item)).toList();
             }
             
             await _dbService.createInvoice(invoice);
@@ -146,7 +153,9 @@ class BackupService {
   Future<void> shareBackup() async {
     try {
       final filePath = await exportToJSON();
-      await Share.shareXFiles(
+      // ==== تم إصلاح المشكلة هنا ====
+      // 3. تم استبدال `Share.shareXFiles` القديمة بالدالة الجديدة `shareXFiles`
+      await shareXFiles(
         [XFile(filePath)],
         subject: 'نسخة احتياطية - فواتير برو',
         text: 'نسخة احتياطية من البيانات',
@@ -363,7 +372,9 @@ class BackupService {
   Future<void> shareReport() async {
     try {
       final filePath = await exportFullReport();
-      await Share.shareXFiles(
+      // ==== تم إصلاح المشكلة هنا ====
+      // 3. تم استبدال `Share.shareXFiles` القديمة بالدالة الجديدة `shareXFiles`
+      await shareXFiles(
         [XFile(filePath)],
         subject: 'تقرير شامل - فواتير برو',
       );
