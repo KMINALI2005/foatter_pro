@@ -46,26 +46,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # ==== تم تعطيل المجلدات غير الموجودة مؤقتاً ====
-  assets:
-    # - asset/images/
-    # - asset/design_course/
-    # - asset/fitness_app/
-    # - asset/hotel/
-    # - asset/introduction_animation/
-    - asset/fonts/ # أبقينا على هذا فقط
-
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: asset/fonts/Cairo-Regular.ttf
-        - asset: asset/fonts/Cairo-Bold.ttf
-          weight: 700
-    - family: Roboto
-      fonts:
-        - asset: asset/fonts/Roboto-Regular.ttf
-        - asset: asset/fonts/Roboto-Medium.ttf
-          weight: 500
-        - asset: asset/fonts/Roboto-Bold.ttf
-          weight: 700
