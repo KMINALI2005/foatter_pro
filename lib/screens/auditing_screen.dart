@@ -40,7 +40,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
       final invoices = await _dbService.getAllInvoices();
       final stats = await _dbService.getStatistics();
 
-      // تجميع الفواتير حسب الزبون
       final Map<String, List<Invoice>> grouped = {};
       for (var invoice in invoices) {
         grouped.putIfAbsent(invoice.customerName, () => []).add(invoice);
@@ -73,17 +72,18 @@ class _AuditingScreenState extends State<AuditingScreen> {
       }
     });
   }
-
+  
+  // ==== تم التعديل هنا ====
   double _calculateCustomerTotal(List<Invoice> invoices) {
-    return invoices.fold(0, (sum, invoice) => sum + invoice.grandTotal);
+    return invoices.fold(0.0, (sum, invoice) => sum + invoice.totalWithPrevious);
   }
 
   double _calculateCustomerPaid(List<Invoice> invoices) {
-    return invoices.fold(0, (sum, invoice) => sum + invoice.amountPaid);
+    return invoices.fold(0.0, (sum, invoice) => sum + invoice.amountPaid);
   }
 
   double _calculateCustomerRemaining(List<Invoice> invoices) {
-    return invoices.fold(0, (sum, invoice) => sum + invoice.remainingBalance);
+    return invoices.fold(0.0, (sum, invoice) => sum + invoice.remainingBalance);
   }
 
   @override
@@ -260,7 +260,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
   }
 
   Widget _buildCustomersList() {
-    // ترتيب الزبائن حسب المتبقي (من الأكبر للأصغر)
     final sortedCustomers = _filteredCustomers.entries.toList()
       ..sort((a, b) {
         final aRemaining = _calculateCustomerRemaining(a.value);
@@ -305,14 +304,13 @@ class _AuditingScreenState extends State<AuditingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // رأس البطاقة
               Row(
                 children: [
                   CircleAvatar(
                     backgroundColor: AppConstants.primaryColor,
                     radius: 28,
                     child: Text(
-                      customerName[0].toUpperCase(),
+                      customerName.isNotEmpty ? customerName[0].toUpperCase() : '؟',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -365,10 +363,7 @@ class _AuditingScreenState extends State<AuditingScreen> {
                   ),
                 ],
               ),
-              
               const Divider(height: 24),
-              
-              // الإحصائيات
               Row(
                 children: [
                   Expanded(
@@ -440,7 +435,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
   }
 
   void _showCustomerDetails(String customerName, List<Invoice> invoices) {
-    // ترتيب الفواتير حسب التاريخ (من الأحدث للأقدم)
     final sortedInvoices = List<Invoice>.from(invoices)
       ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
 
@@ -462,7 +456,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
 
           return Column(
             children: [
-              // Handle
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 width: 40,
@@ -472,8 +465,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
-              // Header
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppConstants.paddingMedium,
@@ -484,7 +475,7 @@ class _AuditingScreenState extends State<AuditingScreen> {
                       backgroundColor: AppConstants.primaryColor,
                       radius: 24,
                       child: Text(
-                        customerName[0].toUpperCase(),
+                        customerName.isNotEmpty ? customerName[0].toUpperCase() : '؟',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -524,10 +515,7 @@ class _AuditingScreenState extends State<AuditingScreen> {
                   ],
                 ),
               ),
-              
               const Divider(),
-              
-              // ملخص الحساب
               Container(
                 margin: const EdgeInsets.all(AppConstants.paddingMedium),
                 padding: const EdgeInsets.all(AppConstants.paddingMedium),
@@ -552,8 +540,6 @@ class _AuditingScreenState extends State<AuditingScreen> {
                   ],
                 ),
               ),
-              
-              // قائمة الفواتير
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppConstants.paddingMedium,
@@ -579,9 +565,7 @@ class _AuditingScreenState extends State<AuditingScreen> {
                   ],
                 ),
               ),
-              
               const SizedBox(height: 8),
-              
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -678,8 +662,9 @@ class _AuditingScreenState extends State<AuditingScreen> {
           children: [
             const SizedBox(height: 4),
             Text('التاريخ: ${Helpers.formatDate(invoice.invoiceDate)}'),
+            // ==== تم التعديل هنا ====
             Text(
-              'الإجمالي: ${Helpers.formatCurrency(invoice.grandTotal)}',
+              'الإجمالي: ${Helpers.formatCurrency(invoice.totalWithPrevious)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             if (invoice.remainingBalance > 0)
@@ -699,10 +684,8 @@ class _AuditingScreenState extends State<AuditingScreen> {
   void _printCustomerStatement(String customerName, List<Invoice> invoices) async {
     try {
       Helpers.showLoadingDialog(context, message: 'جاري التحضير للطباعة...');
-      
       final printService = PrintService.instance;
       await printService.printCustomerStatement(customerName, invoices);
-      
       if (mounted) {
         Helpers.hideLoadingDialog(context);
       }
@@ -717,10 +700,8 @@ class _AuditingScreenState extends State<AuditingScreen> {
   void _shareCustomerStatement(String customerName, List<Invoice> invoices) async {
     try {
       Helpers.showLoadingDialog(context, message: 'جاري التحضير للمشاركة...');
-      
       final shareService = ShareService.instance;
       await shareService.shareCustomerStatement(customerName, invoices);
-      
       if (mounted) {
         Helpers.hideLoadingDialog(context);
       }
