@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/invoice_model.dart';
 import '../models/invoice_item_model.dart';
 import '../models/product_model.dart';
@@ -50,27 +49,28 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadInitialData();
     
     if (widget.invoice != null) {
-      _populateForm();
+      _populateFormForEdit();
     }
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadInitialData() async {
     final customers = await _dbService.getAllCustomerNames();
     setState(() {
       _customerSuggestions = customers;
     });
   }
 
-  void _populateForm() {
+  void _populateFormForEdit() {
     final invoice = widget.invoice!;
     _customerNameController.text = invoice.customerName;
     _previousBalanceController.text = invoice.previousBalance.toString();
     _amountPaidController.text = invoice.amountPaid.toString();
     _notesController.text = invoice.notes ?? '';
     _selectedDate = invoice.invoiceDate;
+    // إنشاء نسخة جديدة من القائمة لتجنب تعديل الكائن الأصلي مباشرة
     _items = List.from(invoice.items);
   }
 
@@ -101,7 +101,6 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       setState(() => _productSuggestions = []);
       return;
     }
-
     final products = await _dbService.searchProducts(query);
     setState(() => _productSuggestions = products);
   }
@@ -121,17 +120,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       Helpers.showErrorSnackBar(context, 'الرجاء إدخال كمية صحيحة');
       return;
     }
-
     if (price == null || price < 0) {
       Helpers.showErrorSnackBar(context, 'الرجاء إدخال سعر صحيح');
       return;
     }
 
+    // ==== تم التعديل هنا ====
+    // تم حذف `total` لأنه أصبح getter يُحسب تلقائياً
     final item = InvoiceItem(
       productName: _productNameController.text.trim(),
       quantity: quantity,
       price: price,
-      total: quantity * price,
       notes: _itemNotesController.text.isEmpty 
           ? null 
           : _itemNotesController.text.trim(),
@@ -146,9 +145,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       _productSuggestions = [];
     });
 
-    // العودة إلى حقل اسم المنتج
     _productNameFocus.requestFocus();
-
     Helpers.showSuccessSnackBar(context, 'تم إضافة المنتج');
   }
 
@@ -159,34 +156,23 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     Helpers.showSnackBar(context, 'تم حذف المنتج');
   }
 
-  double get _currentTotal {
+  // Getters لحساب القيم المعروضة على الشاشة
+  double get _currentItemsTotal {
     return _items.fold(0, (sum, item) => sum + item.total);
   }
 
-  double get _grandTotal {
+  double get _totalWithPrevious {
     final previousBalance = Helpers.parseDouble(_previousBalanceController.text) ?? 0;
-    return previousBalance + _currentTotal;
+    return previousBalance + _currentItemsTotal;
   }
 
   double get _remainingBalance {
     final amountPaid = Helpers.parseDouble(_amountPaidController.text) ?? 0;
-    return _grandTotal - amountPaid;
-  }
-
-  String _getInvoiceStatus() {
-    if (_remainingBalance <= 0) {
-      return AppConstants.statusPaid;
-    } else if (_remainingBalance < _grandTotal) {
-      return AppConstants.statusPartial;
-    } else {
-      return AppConstants.statusUnpaid;
-    }
+    return _totalWithPrevious - amountPaid;
   }
 
   Future<void> _saveInvoice() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     if (_items.isEmpty) {
       Helpers.showErrorSnackBar(context, 'الرجاء إضافة منتج واحد على الأقل');
@@ -196,41 +182,50 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final invoice = Invoice(
-        id: widget.invoice?.id,
-        invoiceNumber: widget.invoice?.invoiceNumber ?? 
-            Helpers.generateInvoiceNumber(),
-        customerName: _customerNameController.text.trim(),
-        invoiceDate: _selectedDate,
-        previousBalance: Helpers.parseDouble(_previousBalanceController.text) ?? 0,
-        amountPaid: Helpers.parseDouble(_amountPaidController.text) ?? 0,
-        notes: _notesController.text.isEmpty ? null : _notesController.text.trim(),
-        items: _items,
-        total: _currentTotal,
-        grandTotal: _grandTotal,
-        remainingBalance: _remainingBalance,
-        status: _getInvoiceStatus(),
-      );
+      final now = DateTime.now();
 
       if (widget.invoice == null) {
-        await _dbService.createInvoice(invoice);
+        // ==== إنشاء فاتورة جديدة (تم تعديل الكود بالكامل) ====
+        final newInvoice = Invoice(
+          invoiceNumber: Helpers.generateInvoiceNumber(),
+          customerName: _customerNameController.text.trim(),
+          invoiceDate: _selectedDate,
+          previousBalance: Helpers.parseDouble(_previousBalanceController.text) ?? 0,
+          amountPaid: Helpers.parseDouble(_amountPaidController.text) ?? 0,
+          notes: _notesController.text.isEmpty ? null : _notesController.text.trim(),
+          items: _items,
+          createdAt: now, // حقل مطلوب
+          updatedAt: now, // حقل مطلوب
+        );
+        await _dbService.createInvoice(newInvoice);
         Helpers.showSuccessSnackBar(context, AppConstants.invoiceCreated);
+
       } else {
-        await _dbService.updateInvoice(invoice);
+        // ==== تحديث فاتورة موجودة (تم تعديل الكود بالكامل) ====
+        final updatedInvoice = widget.invoice!.copyWith(
+          customerName: _customerNameController.text.trim(),
+          invoiceDate: _selectedDate,
+          previousBalance: Helpers.parseDouble(_previousBalanceController.text) ?? 0,
+          amountPaid: Helpers.parseDouble(_amountPaidController.text) ?? 0,
+          notes: _notesController.text.isEmpty ? null : _notesController.text.trim(),
+          items: _items,
+          updatedAt: now, // تحديث تاريخ التعديل
+        );
+        await _dbService.updateInvoice(updatedInvoice);
         Helpers.showSuccessSnackBar(context, AppConstants.invoiceUpdated);
       }
 
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      if (mounted) Navigator.pop(context, true);
+
     } catch (e) {
-      Helpers.showErrorSnackBar(context, 'حدث خطأ: ${e.toString()}');
+      if(mounted) Helpers.showErrorSnackBar(context, 'حدث خطأ: ${e.toString()}');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  // ... باقي الكود (Build method and other widgets) يبقى كما هو ...
+  // لقد نسخت لك الكود المتبقي بالكامل لسهولة الاستبدال
 
   @override
   Widget build(BuildContext context) {
@@ -365,19 +360,16 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             
             const SizedBox(height: 24),
             
-            // قائمة المنتجات المضافة
             if (_items.isNotEmpty) ...[
               _buildSectionTitle('المنتجات المضافة (${_items.length})'),
               _buildItemsList(),
               const SizedBox(height: 24),
             ],
             
-            // الإجماليات
             _buildTotalsCard(),
             
             const SizedBox(height: 16),
             
-            // ملاحظات الفاتورة
             _buildTextField(
               controller: _notesController,
               label: 'ملاحظات الفاتورة (اختياري)',
@@ -495,7 +487,6 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       onSelected: (product) {
         _productNameController.text = product.name;
         _priceController.text = product.price.toString();
-        // الانتقال التلقائي لحقل الكمية
         _quantityFocus.requestFocus();
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
@@ -686,7 +677,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
           children: [
             _buildTotalRow(
               'مجموع الفاتورة الحالية:',
-              _currentTotal,
+              _currentItemsTotal,
               isMain: false,
             ),
             if (Helpers.parseDouble(_previousBalanceController.text) != null &&
@@ -701,7 +692,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             const Divider(height: 20, thickness: 2),
             _buildTotalRow(
               'الإجمالي الكلي:',
-              _grandTotal,
+              _totalWithPrevious,
               isMain: true,
             ),
             if (Helpers.parseDouble(_amountPaidController.text) != null &&
@@ -718,7 +709,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 'المتبقي:',
                 _remainingBalance,
                 isMain: true,
-                color: _remainingBalance > 0
+                color: _remainingBalance >= 0
                     ? AppConstants.dangerColor
                     : AppConstants.successColor,
               ),
