@@ -30,68 +30,51 @@ class DatabaseService {
   }
 
   Future<void> _createDB(Database db, int version) async {
-    const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
-    const textType = 'TEXT NOT NULL';
-    const doubleType = 'REAL NOT NULL';
-    const textTypeNullable = 'TEXT';
-
-    // جدول المنتجات
     await db.execute('''
       CREATE TABLE ${AppConstants.productsTable} (
-        id $idType,
-        name $textType,
-        price $doubleType,
-        notes $textTypeNullable,
-        created_at $textType,
-        updated_at $textType
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
-    // جدول الفواتير
     await db.execute('''
       CREATE TABLE ${AppConstants.invoicesTable} (
-        id $idType,
-        invoice_number $textType UNIQUE,
-        customer_name $textType,
-        invoice_date $textType,
-        previous_balance $doubleType DEFAULT 0,
-        amount_paid $doubleType DEFAULT 0,
-        notes $textTypeNullable,
-        created_at $textType,
-        updated_at $textType
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT NOT NULL UNIQUE,
+        customer_name TEXT NOT NULL,
+        invoice_date TEXT NOT NULL,
+        previous_balance REAL NOT NULL DEFAULT 0,
+        amount_paid REAL NOT NULL DEFAULT 0,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
-    // جدول منتجات الفاتورة
     await db.execute('''
       CREATE TABLE ${AppConstants.invoiceItemsTable} (
-        id $idType,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_id INTEGER NOT NULL,
-        product_name $textType,
-        quantity $doubleType,
-        price $doubleType,
-        notes $textTypeNullable,
-        created_at $textType,
+        product_name TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        price REAL NOT NULL,
+        notes TEXT,
+        created_at TEXT,
         FOREIGN KEY (invoice_id) REFERENCES ${AppConstants.invoicesTable} (id) ON DELETE CASCADE
       )
     ''');
 
-    // إنشاء فهرس لتحسين الأداء
-    await db.execute('''
-      CREATE INDEX idx_invoice_customer ON ${AppConstants.invoicesTable} (customer_name)
-    ''');
-
-    await db.execute('''
-      CREATE INDEX idx_invoice_date ON ${AppConstants.invoicesTable} (invoice_date)
-    ''');
-
-    await db.execute('''
-      CREATE INDEX idx_invoice_items ON ${AppConstants.invoiceItemsTable} (invoice_id)
-    ''');
+    await db.execute('CREATE INDEX idx_invoice_customer ON ${AppConstants.invoicesTable} (customer_name)');
+    await db.execute('CREATE INDEX idx_invoice_date ON ${AppConstants.invoicesTable} (invoice_date)');
+    await db.execute('CREATE INDEX idx_invoice_items ON ${AppConstants.invoiceItemsTable} (invoice_id)');
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    // سيتم استخدامها في حالة تحديث قاعدة البيانات
+    //
   }
 
   // ============= عمليات المنتجات =============
@@ -104,26 +87,13 @@ class DatabaseService {
 
   Future<Product?> getProduct(int id) async {
     final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.productsTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    if (maps.isNotEmpty) {
-      return Product.fromMap(maps.first);
-    }
-    return null;
+    final maps = await db.query(AppConstants.productsTable, where: 'id = ?', whereArgs: [id]);
+    return maps.isNotEmpty ? Product.fromMap(maps.first) : null;
   }
 
   Future<List<Product>> getAllProducts() async {
     final db = await instance.database;
-    const orderBy = 'name ASC';
-    final result = await db.query(
-      AppConstants.productsTable,
-      orderBy: orderBy,
-    );
-
+    final result = await db.query(AppConstants.productsTable, orderBy: 'name ASC');
     return result.map((json) => Product.fromMap(json)).toList();
   }
 
@@ -135,7 +105,6 @@ class DatabaseService {
       whereArgs: ['%$query%'],
       orderBy: 'name ASC',
     );
-
     return result.map((json) => Product.fromMap(json)).toList();
   }
 
@@ -151,80 +120,47 @@ class DatabaseService {
 
   Future<int> deleteProduct(int id) async {
     final db = await instance.database;
-    return await db.delete(
-      AppConstants.productsTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete(AppConstants.productsTable, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ==== تم إضافة الدالة هنا ====
+  Future<int> deleteAllProducts() async {
+    final db = await instance.database;
+    return await db.delete(AppConstants.productsTable);
   }
 
   // ============= عمليات الفواتير =============
 
   Future<Invoice> createInvoice(Invoice invoice) async {
     final db = await instance.database;
-    
-    // إنشاء الفاتورة
     final id = await db.insert(AppConstants.invoicesTable, invoice.toMap());
-    
-    // إضافة المنتجات
     for (var item in invoice.items) {
-      await db.insert(
-        AppConstants.invoiceItemsTable,
-        item.copyWith(invoiceId: id).toMap(),
-      );
+      await db.insert(AppConstants.invoiceItemsTable, item.copyWith(invoiceId: id).toMap());
     }
-    
     return invoice.copyWith(id: id);
   }
 
   Future<Invoice?> getInvoice(int id) async {
     final db = await instance.database;
-    
-    // جلب الفاتورة
-    final invoiceMaps = await db.query(
-      AppConstants.invoicesTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
+    final invoiceMaps = await db.query(AppConstants.invoicesTable, where: 'id = ?', whereArgs: [id]);
     if (invoiceMaps.isEmpty) return null;
 
     final invoice = Invoice.fromMap(invoiceMaps.first);
-    
-    // جلب المنتجات
-    final itemsMaps = await db.query(
-      AppConstants.invoiceItemsTable,
-      where: 'invoice_id = ?',
-      whereArgs: [id],
-    );
-
+    final itemsMaps = await db.query(AppConstants.invoiceItemsTable, where: 'invoice_id = ?', whereArgs: [id]);
     invoice.items = itemsMaps.map((json) => InvoiceItem.fromMap(json)).toList();
-    
     return invoice;
   }
 
   Future<List<Invoice>> getAllInvoices() async {
     final db = await instance.database;
-    final result = await db.query(
-      AppConstants.invoicesTable,
-      orderBy: 'invoice_date DESC, created_at DESC',
-    );
-
-    final invoices = <Invoice>[];
+    final result = await db.query(AppConstants.invoicesTable, orderBy: 'invoice_date DESC, created_at DESC');
+    final List<Invoice> invoices = [];
     for (var map in result) {
       final invoice = Invoice.fromMap(map);
-      
-      // جلب المنتجات لكل فاتورة
-      final itemsMaps = await db.query(
-        AppConstants.invoiceItemsTable,
-        where: 'invoice_id = ?',
-        whereArgs: [invoice.id],
-      );
-      
+      final itemsMaps = await db.query(AppConstants.invoiceItemsTable, where: 'invoice_id = ?', whereArgs: [invoice.id]);
       invoice.items = itemsMaps.map((json) => InvoiceItem.fromMap(json)).toList();
       invoices.add(invoice);
     }
-
     return invoices;
   }
 
@@ -236,21 +172,13 @@ class DatabaseService {
       whereArgs: [customerName],
       orderBy: 'invoice_date DESC',
     );
-
-    final invoices = <Invoice>[];
+    final List<Invoice> invoices = [];
     for (var map in result) {
       final invoice = Invoice.fromMap(map);
-      
-      final itemsMaps = await db.query(
-        AppConstants.invoiceItemsTable,
-        where: 'invoice_id = ?',
-        whereArgs: [invoice.id],
-      );
-      
+      final itemsMaps = await db.query(AppConstants.invoiceItemsTable, where: 'invoice_id = ?', whereArgs: [invoice.id]);
       invoice.items = itemsMaps.map((json) => InvoiceItem.fromMap(json)).toList();
       invoices.add(invoice);
     }
-
     return invoices;
   }
 
@@ -262,136 +190,65 @@ class DatabaseService {
       distinct: true,
       orderBy: 'customer_name ASC',
     );
-
     return result.map((map) => map['customer_name'] as String).toList();
-  }
-
-  Future<List<Invoice>> searchInvoices(String query) async {
-    final db = await instance.database;
-    final result = await db.query(
-      AppConstants.invoicesTable,
-      where: 'customer_name LIKE ? OR invoice_number LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
-      orderBy: 'invoice_date DESC',
-    );
-
-    final invoices = <Invoice>[];
-    for (var map in result) {
-      final invoice = Invoice.fromMap(map);
-      
-      final itemsMaps = await db.query(
-        AppConstants.invoiceItemsTable,
-        where: 'invoice_id = ?',
-        whereArgs: [invoice.id],
-      );
-      
-      invoice.items = itemsMaps.map((json) => InvoiceItem.fromMap(json)).toList();
-      invoices.add(invoice);
-    }
-
-    return invoices;
   }
 
   Future<int> updateInvoice(Invoice invoice) async {
     final db = await instance.database;
-    
-    // تحديث الفاتورة
     final result = await db.update(
       AppConstants.invoicesTable,
       invoice.copyWith(updatedAt: DateTime.now()).toMap(),
       where: 'id = ?',
       whereArgs: [invoice.id],
     );
-    
-    // حذف المنتجات القديمة
-    await db.delete(
-      AppConstants.invoiceItemsTable,
-      where: 'invoice_id = ?',
-      whereArgs: [invoice.id],
-    );
-    
-    // إضافة المنتجات الجديدة
+    await db.delete(AppConstants.invoiceItemsTable, where: 'invoice_id = ?', whereArgs: [invoice.id]);
     for (var item in invoice.items) {
-      await db.insert(
-        AppConstants.invoiceItemsTable,
-        item.copyWith(invoiceId: invoice.id).toMap(),
-      );
+      await db.insert(AppConstants.invoiceItemsTable, item.copyWith(invoiceId: invoice.id).toMap());
     }
-    
     return result;
   }
 
   Future<int> deleteInvoice(int id) async {
     final db = await instance.database;
-    
-    // حذف المنتجات أولاً
-    await db.delete(
-      AppConstants.invoiceItemsTable,
-      where: 'invoice_id = ?',
-      whereArgs: [id],
-    );
-    
-    // حذف الفاتورة
-    return await db.delete(
-      AppConstants.invoicesTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete(AppConstants.invoicesTable, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ==== تم إضافة الدالة هنا ====
+  Future<int> deleteAllInvoices() async {
+    final db = await instance.database;
+    return await db.delete(AppConstants.invoicesTable);
   }
 
   // ============= إحصائيات =============
 
   Future<Map<String, dynamic>> getStatistics() async {
     final db = await instance.database;
+    final customersCountResult = await db.rawQuery('SELECT COUNT(DISTINCT customer_name) as count FROM ${AppConstants.invoicesTable}');
+    final invoicesCountResult = await db.rawQuery('SELECT COUNT(*) as count FROM ${AppConstants.invoicesTable}');
     
-    // عدد الزبائن
-    final customersCount = await db.rawQuery(
-      'SELECT COUNT(DISTINCT customer_name) as count FROM ${AppConstants.invoicesTable}'
-    );
-    
-    // إجمالي الفواتير
-    final invoicesCount = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM ${AppConstants.invoicesTable}'
-    );
-    
-    // إجمالي المبالغ
-    final totals = await db.rawQuery('''
-      SELECT 
-        COALESCE(SUM(previous_balance), 0) as total_previous,
-        COALESCE(SUM(amount_paid), 0) as total_paid
-      FROM ${AppConstants.invoicesTable}
-    ''');
-    
-    // حساب مجموع الفواتير الحالية
     final invoices = await getAllInvoices();
-    double totalCurrent = 0;
     double totalRemaining = 0;
-    
+    double totalGrand = 0;
+    double totalPaid = 0;
+
     for (var invoice in invoices) {
-      totalCurrent += invoice.grandTotal;
+      // ==== تم إصلاح المشكلة هنا ====
+      totalGrand += invoice.totalWithPrevious;
       totalRemaining += invoice.remainingBalance;
+      totalPaid += invoice.amountPaid;
     }
-    
-    // استخدام as num ثم toDouble() لتجنب أخطاء النوع
-    final totalPrevious = (totals.first['total_previous'] as num?)?.toDouble() ?? 0.0;
-    final totalPaid = (totals.first['total_paid'] as num?)?.toDouble() ?? 0.0;
 
     return {
-      'customersCount': customersCount.first['count'] as int,
-      'invoicesCount': invoicesCount.first['count'] as int,
-      'totalPrevious': totalPrevious,
+      'customersCount': Sqflite.firstIntValue(customersCountResult) ?? 0,
+      'invoicesCount': Sqflite.firstIntValue(invoicesCountResult) ?? 0,
       'totalPaid': totalPaid,
-      'totalCurrent': totalCurrent,
-      'totalGrand': totalPrevious + totalCurrent,
+      'totalGrand': totalGrand,
       'totalRemaining': totalRemaining,
     };
   }
 
   Future<double> getCustomerBalance(String customerName) async {
     final invoices = await getInvoicesByCustomer(customerName);
-    // ==== تم إصلاح المشكلة هنا ====
-    // تم تغيير طريقة حساب المجموع لتجنب خطأ 'FutureOr<double>'
-    // هذه الطريقة أكثر أماناً ووضوحاً
     double sum = 0.0;
     for (final invoice in invoices) {
       sum += invoice.remainingBalance;
@@ -399,7 +256,6 @@ class DatabaseService {
     return sum;
   }
 
-  // إغلاق قاعدة البيانات
   Future<void> close() async {
     final db = await instance.database;
     await db.close();
