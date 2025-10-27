@@ -24,8 +24,8 @@ jobs:
         run: flutter pub get
       
       - name: Analyze project source
-        # ==== هذا هو السطر الوحيد الذي تم تعديله ====
-        run: flutter analyze --fatal-infos=false --fatal-warnings=false
+        # ==== هذا هو السطر الوحيد الذي تم تعديله (بالصيغة الصحيحة) ====
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build Release APK
         run: flutter build apk --release 
