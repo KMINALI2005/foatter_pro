@@ -1,4 +1,4 @@
-name: foatter_pro
+name: best_flutter_ui_templates
 description: A new Flutter project.
 
 publish_to: "none"
@@ -38,22 +38,17 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  assets:
-    - assets/images/
-    - assets/design_course/
-    - assets/fitness_app/
-    - assets-hotel/
-    - assets/introduction_animation/
+
 
   fonts:
     - family: Cairo
       fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
-        - asset: assets-fonts/Cairo-Bold.ttf
+        - asset: asset/fonts/Cairo-Regular.ttf
+        - asset: asset-fonts/Cairo-Bold.ttf
           weight: 700
     - family: Roboto
       fonts:
-        - asset: assets/fonts/Roboto-Bold.ttf
-        - asset: assets/fonts/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto-Medium.ttf
+        - asset: asset/fonts/Roboto-Bold.ttf
+        - asset: asset/fonts/Roboto-Regular.ttf
+        - asset: asset/fonts/Roboto-Medium.ttf
           weight: 400
