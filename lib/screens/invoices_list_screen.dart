@@ -60,6 +60,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
     // تصفية حسب الحالة
     if (_filterStatus != 'الكل') {
       filtered = filtered.where((invoice) {
+        // نستخدم getter 'status' الذي يحسب الحالة تلقائياً
         return invoice.status == _filterStatus;
       }).toList();
     }
@@ -92,11 +93,11 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
       message: AppConstants.confirmDeleteInvoice,
     );
 
-    if (confirm && mounted) {
+    if (confirm == true && mounted) {
       try {
         await _dbService.deleteInvoice(invoice.id!);
         Helpers.showSuccessSnackBar(context, AppConstants.invoiceDeleted);
-        _loadInvoices();
+        _loadInvoices(); // إعادة تحميل البيانات بعد الحذف
       } catch (e) {
         Helpers.showErrorSnackBar(context, 'حدث خطأ: ${e.toString()}');
       }
@@ -139,7 +140,6 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       child: Column(
         children: [
-          // شريط البحث
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
@@ -178,9 +178,9 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
         scrollDirection: Axis.horizontal,
         children: [
           _buildFilterChip('الكل'),
-          _buildFilterChip('غير مسددة'),
-          _buildFilterChip('مسددة جزئياً'),
-          _buildFilterChip('مسددة'),
+          _buildFilterChip(AppConstants.statusUnpaid),
+          _buildFilterChip(AppConstants.statusPartial),
+          _buildFilterChip(AppConstants.statusPaid),
         ],
       ),
     );
@@ -194,10 +194,12 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
         label: Text(label),
         selected: isSelected,
         onSelected: (selected) {
-          setState(() {
-            _filterStatus = label;
-            _applyFilters();
-          });
+          if(selected) {
+            setState(() {
+              _filterStatus = label;
+              _applyFilters();
+            });
+          }
         },
         selectedColor: AppConstants.primaryColor,
         labelStyle: TextStyle(
@@ -271,7 +273,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
           leading: CircleAvatar(
             backgroundColor: AppConstants.primaryColor,
             child: Text(
-              customerName[0].toUpperCase(),
+              customerName.isNotEmpty ? customerName[0].toUpperCase() : '؟',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -382,8 +384,10 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
             const SizedBox(height: 4),
             Text('التاريخ: ${Helpers.formatDate(invoice.invoiceDate)}'),
             const SizedBox(height: 2),
+            // ==== تم التعديل هنا ====
+            // استبدال `grandTotal` بـ `totalWithPrevious`
             Text(
-              'الإجمالي: ${Helpers.formatCurrency(invoice.grandTotal)}',
+              'الإجمالي: ${Helpers.formatCurrency(invoice.totalWithPrevious)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             if (invoice.remainingBalance > 0) ...[
@@ -419,7 +423,6 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
         builder: (context, scrollController) {
           return Column(
             children: [
-              // Handle
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 width: 40,
@@ -429,8 +432,6 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
-              // Header
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppConstants.paddingMedium,
@@ -467,10 +468,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                   ],
                 ),
               ),
-              
               const Divider(),
-              
-              // Content
               Expanded(
                 child: ListView(
                   controller: scrollController,
@@ -485,9 +483,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                         _buildDetailRow('الحالة', invoice.status),
                       ],
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     _buildDetailCard(
                       'المنتجات (${invoice.items.length})',
                       invoice.items.map((item) {
@@ -509,9 +505,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                         );
                       }).toList(),
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     _buildDetailCard(
                       'الإجماليات',
                       [
@@ -519,14 +513,15 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                           'مجموع الفاتورة',
                           Helpers.formatCurrency(invoice.total),
                         ),
-                        if ((invoice.previousBalance ?? 0) > 0)
+                        if (invoice.previousBalance > 0)
                           _buildDetailRow(
                             'الحساب السابق',
-                            Helpers.formatCurrency(invoice.previousBalance ?? 0),
+                            Helpers.formatCurrency(invoice.previousBalance),
                           ),
                         _buildDetailRow(
                           'الإجمالي الكلي',
-                          Helpers.formatCurrency(invoice.grandTotal),
+                          // ==== تم التعديل هنا ====
+                          Helpers.formatCurrency(invoice.totalWithPrevious),
                           isBold: true,
                         ),
                         if (invoice.amountPaid > 0)
@@ -545,7 +540,6 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
                         ),
                       ],
                     ),
-                    
                     if (invoice.notes != null && invoice.notes!.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       _buildDetailCard(
@@ -654,9 +648,7 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
 
       if (choice != null && mounted) {
         Helpers.showLoadingDialog(context, message: 'جاري المشاركة...');
-        
         final shareService = ShareService.instance;
-        
         switch (choice) {
           case 'text':
             await shareService.shareInvoiceAsText(invoice);
@@ -668,7 +660,6 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
             await shareService.shareToWhatsApp(invoice);
             break;
         }
-        
         if (mounted) {
           Helpers.hideLoadingDialog(context);
           Helpers.showSuccessSnackBar(context, 'تم المشاركة بنجاح');
@@ -685,10 +676,8 @@ class _InvoicesListScreenState extends State<InvoicesListScreen> {
   void _printInvoice(Invoice invoice) async {
     try {
       Helpers.showLoadingDialog(context, message: 'جاري التحضير للطباعة...');
-      
       final printService = PrintService.instance;
       await printService.printInvoice(invoice);
-      
       if (mounted) {
         Helpers.hideLoadingDialog(context);
       }
