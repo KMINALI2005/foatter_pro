@@ -1,68 +1,56 @@
 plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("dev.flutter.flutter-gradle-plugin")
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
+fun localProperties(): java.util.Properties {
+    val properties = java.util.Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        properties.load(java.io.FileInputStream(localPropertiesFile))
     }
+    return properties
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
+val flutterVersionCode: String by localProperties()
+val flutterVersionName: String by localProperties()
 
 android {
-    namespace "com.example.best_flutter_ui_templates"
-    // ==== تم التحديث هنا ====
-    compileSdk 34
-    ndkVersion flutter.ndkVersion
+    namespace = "com.example.best_flutter_ui_templates"
+    compileSdk = 34
+    ndkVersion = "25.1.8937393" // تحديد إصدار ثابت ومستقر
 
     compileOptions {
-        // ==== تم التحديث هنا ====
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        // ==== تم التحديث هنا ====
-        jvmTarget = '1.8'
+        jvmTarget = "1.8"
     }
 
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
+    sourceSets["main"].java.srcDirs("src/main/kotlin")
 
     defaultConfig {
-        applicationId "com.example.best_flutter_ui_templates"
-        // ==== تم التحديث هنا ====
-        minSdk 21
-        targetSdk 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        applicationId = "com.example.best_flutter_ui_templates"
+        minSdk = 21
+        targetSdk = 34
+        versionCode = flutterVersionCode.toInt()
+        versionName = flutterVersionName
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            isSigningReady = false // تعطيل فحص التوقيع في GitHub Actions
         }
     }
 }
 
 flutter {
-    source '../..'
+    source = "../.."
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    //
 }
