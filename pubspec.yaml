@@ -47,14 +47,14 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # تأكد من أن اسم هذا المجلد يطابق ما لديك (asset أو assets)
+  # ==== تم تعطيل المجلدات غير الموجودة مؤقتاً ====
   assets:
-    - asset/images/
-    - asset/design_course/
-    - asset/fitness_app/
-    - asset/hotel/
-    - asset/introduction_animation/
-    - asset/fonts/
+    # - asset/images/
+    # - asset/design_course/
+    # - asset/fitness_app/
+    # - asset/hotel/
+    # - asset/introduction_animation/
+    - asset/fonts/ # أبقينا على هذا فقط
 
   fonts:
     - family: Cairo
