@@ -5,7 +5,6 @@ publish_to: 'none'
 
 version: 1.0.0+1
 
-# ==== هذا هو القسم الذي تم حذفه بالخطأ ====
 environment:
   sdk: ">=3.2.0 <4.0.0"
 
@@ -36,7 +35,8 @@ dependencies:
   # المشاركة والملفات
   share_plus: ^7.2.2
   path_provider: ^2.1.3
-  
+  # ==== تأكد من وجود هذا السطر ====
+  file_picker: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -45,4 +45,16 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
+  # لقد قمنا بإلغاء هذا القسم مؤقتاً لحل مشكلة المسارات
+  # يمكنك إعادة تفعيله عندما تتأكد من وجود المجلدات والملفات
   uses-material-design: true
+
+  # assets:
+  #   - asset/fonts/
+
+  # fonts:
+  #   - family: Cairo
+  #     fonts:
+  #       - asset: asset/fonts/Cairo-Regular.ttf
+  #       - asset: asset/fonts/Cairo-Bold.ttf
+  #         weight: 700
