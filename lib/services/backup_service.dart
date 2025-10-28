@@ -21,7 +21,7 @@ class BackupService {
       final products = await _dbService.getAllProducts();
 
       final data = {
-        'version': '1.0.1', // تم تحديث الإصدار
+        'version': '1.0.1',
         'exportDate': DateTime.now().toIso8601String(),
         'invoices': invoices.map((inv) => {
           ...inv.toMap(),
@@ -99,7 +99,6 @@ class BackupService {
         final invoices = data['invoices'] as List;
         for (var invoiceMapDynamic in invoices) {
           try {
-            // ==== تم إصلاح المشكلة هنا ====
             final invoiceMap = Map<String, dynamic>.from(invoiceMapDynamic);
             
             final now = DateTime.now();
@@ -154,8 +153,6 @@ class BackupService {
 
   Future<void> clearAllData() async {
     try {
-      // ==== تم إصلاح المشكلة هنا ====
-      // سنقوم بإضافة هذه الدوال في ملف database_service
       await _dbService.deleteAllInvoices();
       await _dbService.deleteAllProducts();
     } catch (e) {
@@ -221,8 +218,94 @@ class BackupService {
   }
 
   Future<String> exportFullReport() async {
-    // ... محتوى الدالة يبقى كما هو ...
-    return ""; // Placeholder
+    try {
+      final invoices = await _dbService.getAllInvoices();
+      final products = await _dbService.getAllProducts();
+      final stats = await _dbService.getStatistics();
+      
+      final buffer = StringBuffer();
+      
+      buffer.writeln('═══════════════════════════════════════════');
+      buffer.writeln('          تقرير شامل - فواتير برو          ');
+      buffer.writeln('═══════════════════════════════════════════');
+      buffer.writeln('التاريخ: ${Helpers.formatDateTime(DateTime.now())}');
+      buffer.writeln('═══════════════════════════════════════════\n');
+      
+      buffer.writeln('📊 الإحصائيات العامة:');
+      buffer.writeln('─────────────────────────────────────────');
+      buffer.writeln('عدد الزبائن: ${Helpers.formatNumberInt(stats['customersCount'] ?? 0)}');
+      buffer.writeln('عدد الفواتير: ${Helpers.formatNumberInt(stats['invoicesCount'] ?? 0)}');
+      buffer.writeln('عدد المنتجات: ${Helpers.formatNumberInt(products.length)}');
+      buffer.writeln('إجمالي المبالغ: ${Helpers.formatCurrency(stats['totalGrand'] ?? 0)}');
+      buffer.writeln('إجمالي المدفوع: ${Helpers.formatCurrency(stats['totalPaid'] ?? 0)}');
+      buffer.writeln('إجمالي المتبقي: ${Helpers.formatCurrency(stats['totalRemaining'] ?? 0)}');
+      buffer.writeln();
+      
+      buffer.writeln('📦 المنتجات (${products.length}):');
+      buffer.writeln('─────────────────────────────────────────');
+      for (var i = 0; i < products.length; i++) {
+        final product = products[i];
+        buffer.writeln('${i + 1}. ${product.name}');
+        buffer.writeln('   السعر: ${Helpers.formatCurrency(product.price)}');
+        if (product.notes != null && product.notes!.isNotEmpty) {
+          buffer.writeln('   ملاحظة: ${product.notes}');
+        }
+      }
+      buffer.writeln();
+      
+      buffer.writeln('📄 الفواتير (${invoices.length}):');
+      buffer.writeln('─────────────────────────────────────────');
+      
+      final groupedByCustomer = <String, List<Invoice>>{};
+      for (var invoice in invoices) {
+        groupedByCustomer.putIfAbsent(invoice.customerName, () => []).add(invoice);
+      }
+      
+      for (var customerEntry in groupedByCustomer.entries) {
+        final customerName = customerEntry.key;
+        final customerInvoices = customerEntry.value;
+        final totalAmount = customerInvoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
+        final paidAmount = customerInvoices.fold(0.0, (sum, inv) => sum + inv.amountPaid);
+        final remainingAmount = customerInvoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
+        
+        buffer.writeln('\n👤 الزبون: $customerName');
+        buffer.writeln('عدد الفواتير: ${Helpers.formatNumberInt(customerInvoices.length)}');
+        buffer.writeln('الإجمالي: ${Helpers.formatCurrency(totalAmount)}');
+        buffer.writeln('المدفوع: ${Helpers.formatCurrency(paidAmount)}');
+        buffer.writeln('المتبقي: ${Helpers.formatCurrency(remainingAmount)}');
+        buffer.writeln();
+        
+        for (var invoice in customerInvoices) {
+          buffer.writeln('  • فاتورة #${invoice.invoiceNumber}');
+          buffer.writeln('    التاريخ: ${Helpers.formatDate(invoice.invoiceDate)}');
+          buffer.writeln('    الإجمالي: ${Helpers.formatCurrency(invoice.totalWithPrevious)}');
+          buffer.writeln('    المدفوع: ${Helpers.formatCurrency(invoice.amountPaid)}');
+          buffer.writeln('    المتبقي: ${Helpers.formatCurrency(invoice.remainingBalance)}');
+          buffer.writeln('    الحالة: ${invoice.status}');
+          
+          if (invoice.items.isNotEmpty) {
+            buffer.writeln('    المنتجات:');
+            for (var item in invoice.items) {
+              buffer.writeln('      - ${item.productName}: ${Helpers.formatNumber(item.quantity)} × ${Helpers.formatCurrency(item.price)} = ${Helpers.formatCurrency(item.total)}');
+            }
+          }
+          buffer.writeln();
+        }
+      }
+      
+      buffer.writeln('═══════════════════════════════════════════');
+      buffer.writeln('         نهاية التقرير - شكراً لكم          ');
+      buffer.writeln('═══════════════════════════════════════════');
+      
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${directory.path}/report_$timestamp.txt');
+      await file.writeAsString(buffer.toString());
+      
+      return file.path;
+    } catch (e) {
+      throw Exception('فشل في إنشاء التقرير: $e');
+    }
   }
 
   Future<void> shareReport() async {

@@ -4,11 +4,8 @@ import 'invoices_list_screen.dart';
 import 'products_screen.dart';
 import 'auditing_screen.dart';
 import 'create_invoice_screen.dart';
-import 'settings_screen.dart'; // تأكد من استيراد شاشة الإعدادات
+import 'settings_screen.dart';
 
-// =============== شاشة "حول التطبيق" ===============
-// تم إنشاء هذه الشاشة البسيطة هنا لسهولة الوصول إليها
-// يمكنك لاحقاً نقلها إلى ملف منفصل إذا أردت
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -60,7 +57,6 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-// =============== الشاشة الرئيسية (HomeScreen) ===============
 class HomeScreen extends StatefulWidget {
   final VoidCallback onThemeToggle;
   final bool isDarkMode;
@@ -77,24 +73,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<_ProductsScreenState> _productsKey = GlobalKey<_ProductsScreenState>();
 
-  // قائمة تحتوي على جميع الشاشات الخمس للتطبيق
-  static const List<Widget> _screens = <Widget>[
-    InvoicesListScreen(),
-    ProductsScreen(),
-    AuditingScreen(),
-    SettingsScreen(),
-    AboutScreen(),
+  List<Widget> get _screens => <Widget>[
+    const InvoicesListScreen(),
+    ProductsScreen(key: _productsKey),
+    const AuditingScreen(),
+    const SettingsScreen(),
+    const AboutScreen(),
   ];
 
-  // دالة لتغيير الشاشة المعروضة عند الضغط على أيقونة في الشريط السفلي
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // دالة للانتقال إلى شاشة إنشاء فاتورة جديدة
   void _navigateToCreateInvoice() {
     Navigator.push(
       context,
@@ -103,15 +97,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ).then((result) {
       if (result == true) {
-        // يمكنك إضافة منطق لتحديث البيانات هنا إذا لزم الأمر
         setState(() {});
       }
     });
   }
 
+  void _navigateToAddProduct() {
+    _productsKey.currentState?._showAddEditDialog();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // قائمة بأسماء الشاشات لعرضها في الشريط العلوي
     final List<String> titles = [
       'الفواتير',
       'المنتجات',
@@ -124,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(titles[_selectedIndex]),
         actions: [
-          // زر تغيير الوضع الليلي/النهاري
           IconButton(
             icon: Icon(
               widget.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
@@ -134,28 +129,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      // استخدام IndexedStack للحفاظ على حالة الشاشات عند التنقل بينها
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
-      // زر الإضافة العائم يظهر فقط في شاشة الفواتير
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: _navigateToCreateInvoice,
-              icon: const Icon(Icons.add),
-              label: const Text('فاتورة جديدة'),
-            )
-          : null,
+      floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-
-      // شريط التنقل السفلي الذي يحتوي على 5 أقسام
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
         elevation: 8,
-        // هذا الخيار يضمن ظهور أسماء الأيقونات دائماً
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow, 
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
@@ -185,5 +169,27 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget? _buildFloatingActionButton() {
+    switch (_selectedIndex) {
+      case 0:
+        return FloatingActionButton.extended(
+          onPressed: _navigateToCreateInvoice,
+          icon: const Icon(Icons.add),
+          label: const Text('فاتورة جديدة'),
+          heroTag: 'fab_invoices',
+        );
+      case 1:
+        return FloatingActionButton.extended(
+          onPressed: _navigateToAddProduct,
+          icon: const Icon(Icons.add),
+          label: const Text('منتج جديد'),
+          heroTag: 'fab_products',
+          backgroundColor: AppConstants.accentColor,
+        );
+      default:
+        return null;
+    }
   }
 }
