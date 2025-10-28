@@ -1,52 +1,57 @@
-name: Build Flutter APK
+name: best_flutter_ui_templates
+description: A new Flutter project.
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+publish_to: 'none'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Setup Java 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '17'
-        cache: 'gradle'
-    
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.19.6'
-        channel: 'stable'
-        cache: true
-    
-    - name: Create local.properties
-      run: |
-        echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-        echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
-    
-    - name: Flutter Doctor
-      run: flutter doctor -v
-    
-    - name: Clean Project
-      run: flutter clean
-    
-    - name: Get Dependencies
-      run: flutter pub get
-    
-    - name: Build APK
-      run: flutter build apk --release --no-shrink
-    
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 30
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # الأيقونات
+  cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.8.0
+
+  # UI والرسوم المتحركة
+  flutter_rating_bar: ^4.0.1
+  animations: ^2.0.11
+  flutter_slidable: ^3.1.1
+
+  # التاريخ والوقت
+  intl: ^0.19.0
+
+  # قاعدة البيانات
+  sqflite: ^2.3.3+2
+
+  # PDF والطباعة
+  pdf: ^3.11.1
+  printing: ^5.13.4
+
+  # المشاركة والملفات
+  share_plus: ^10.1.2
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  file_picker: ^8.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - asset/fonts/
+
+  # fonts:
+  #   - family: Cairo
+  #     fonts:
+  #       - asset: asset/fonts/Cairo-Regular.ttf
+  #       - asset: asset/fonts/Cairo-Bold.ttf
+  #         weight: 700
