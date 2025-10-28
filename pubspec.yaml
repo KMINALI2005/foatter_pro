@@ -41,8 +41,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # --- هذا هو السطر الذي تم تعديله ---
-  # تم تخفيض الإصدار إلى 4.0.0 ليتوافق مع إصدار Dart 3.4.3 (الموجود في فلاتر 3.22.2)
+  # --- هذا هو السطر الذي يحل المشكلة الأصلية ---
   flutter_lints: ^4.0.0
 
 flutter:
@@ -57,3 +56,4 @@ flutter:
   #       - asset: asset/fonts/Cairo-Regular.ttf
   #       - asset: asset/fonts/Cairo-Bold.ttf
   #         weight: 700
+
