@@ -122,7 +122,9 @@ class AppConstants {
 // Theme Data
 class AppTheme {
   static ThemeData lightTheme = ThemeData(
+    // ==== هذا هو السطر المهم الذي تم إضافته ====
     useMaterial3: true,
+    
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppConstants.primaryColor,
       brightness: Brightness.light,
@@ -144,7 +146,7 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
-    cardTheme: CardTheme(  // ✅ صحيح - الاسم الجديد في Flutter 3.24
+    cardTheme: CardTheme(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
@@ -203,7 +205,9 @@ class AppTheme {
   );
   
   static ThemeData darkTheme = ThemeData(
+    // ==== وهذا هو السطر الثاني المهم الذي تم إضافته ====
     useMaterial3: true,
+    
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppConstants.darkPrimary,
       brightness: Brightness.dark,
