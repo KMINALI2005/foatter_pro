@@ -25,7 +25,7 @@ val flutterVersionName: String by lazy {
 
 android {
     namespace = "com.example.best_flutter_ui_templates"
-    compileSdk = 35
+    compileSdk = 34
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -42,7 +42,7 @@ android {
     defaultConfig {
         applicationId = "com.example.best_flutter_ui_templates"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 34
         versionCode = flutterVersionCode.toInt()
         versionName = flutterVersionName
         multiDexEnabled = true
