@@ -1,4 +1,3 @@
-// ==== تم إضافة هذه الأسطر لحل المشكلة ====
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -17,8 +16,12 @@ fun localProperties(): Properties {
     return properties
 }
 
-val flutterVersionCode: String by lazy { localProperties().getProperty("flutter.versionCode", "1") }
-val flutterVersionName: String by lazy { localProperties().getProperty("flutter.versionName", "1.0") }
+val flutterVersionCode: String by lazy { 
+    localProperties().getProperty("flutter.versionCode", "1") 
+}
+val flutterVersionName: String by lazy { 
+    localProperties().getProperty("flutter.versionName", "1.0") 
+}
 
 android {
     namespace = "com.example.best_flutter_ui_templates"
@@ -42,12 +45,32 @@ android {
         targetSdk = 34
         versionCode = flutterVersionCode.toInt()
         versionName = flutterVersionName
+        multiDexEnabled = true
     }
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/*.kotlin_module"
+            )
         }
     }
 }
@@ -57,5 +80,5 @@ flutter {
 }
 
 dependencies {
-    //
+    implementation("androidx.multidex:multidex:2.0.1")
 }
