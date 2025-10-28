@@ -4,7 +4,7 @@ import '../models/product_model.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
-import 'add_edit_product_screen.dart'; // استيراد الصفحة الجديدة
+import 'add_edit_product_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -61,13 +61,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
     });
   }
 
-  // ==== تم تعديل هذه الدالة ====
   void _navigateToAddEditProduct({Product? product}) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddEditProductScreen(product: product)),
     ).then((result) {
-      // إذا عادت الصفحة بنتيجة 'true'، قم بتحديث القائمة
       if (result == true) {
         _loadProducts();
       }
@@ -107,13 +105,58 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ],
     );
   }
-
+  
+  // ==== تم التأكد من أن هذه الدالة كاملة وصحيحة ====
   Widget _buildHeader() {
-    // ... محتوى هذه الدالة يبقى كما هو ...
+    return Container(
+      color: Theme.of(context).cardColor,
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('إجمالي المنتجات:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: AppConstants.primaryColor, borderRadius: BorderRadius.circular(20)),
+                child: Text(Helpers.toArabicNumbers(_allProducts.length.toString()), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'البحث عن منتج...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchController.clear(); _filterProducts(''); })
+                  : null,
+              filled: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+            ),
+            onChanged: _filterProducts,
+          ),
+        ],
+      ),
+    );
   }
 
+  // ==== تم التأكد من أن هذه الدالة كاملة وصحيحة ====
   Widget _buildEmptyState() {
-    // ... محتوى هذه الدالة يبقى كما هو ...
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 100, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(AppConstants.noProductsFound, style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+          const SizedBox(height: 8),
+          Text('ابدأ بإضافة منتج جديد', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+        ],
+      ),
+    );
   }
 
   Widget _buildProductsList() {
@@ -137,7 +180,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
         motion: const ScrollMotion(),
         children: [
           SlidableAction(
-            // ==== تم التعديل هنا ====
             onPressed: (_) => _navigateToAddEditProduct(product: product),
             backgroundColor: AppConstants.accentColor,
             foregroundColor: Colors.white,
@@ -155,7 +197,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
       child: Card(
         margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
-        elevation: 2,
         child: ListTile(
           contentPadding: const EdgeInsets.all(AppConstants.paddingMedium),
           leading: Container(

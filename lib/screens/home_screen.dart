@@ -5,13 +5,44 @@ import 'products_screen.dart';
 import 'auditing_screen.dart';
 import 'create_invoice_screen.dart';
 import 'settings_screen.dart';
-import 'add_edit_product_screen.dart'; // استيراد الصفحة الجديدة
+import 'add_edit_product_screen.dart';
 
+// ==== تم التأكد من أن هذه الدالة كاملة وصحيحة ====
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    // ... محتوى AboutScreen يبقى كما هو ...
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.receipt_long, size: 60, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            Text(AppConstants.appName, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('الإصدار ${AppConstants.appVersion}', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32.0),
+              child: Text(
+                'تطبيق شامل لإدارة الفواتير والمنتجات وحسابات الزبائن. يعمل بدون إنترنت مع دعم كامل للغة العربية.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
