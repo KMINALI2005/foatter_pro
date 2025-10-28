@@ -23,9 +23,9 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        # --- هذا هو السطر الذي تم تعديله ---
-        # "stable" سيضمن استخدام أحدث إصدار مستقر من فلاتر
-        flutter-version: 'stable' 
+        # --- هذا هو السطر الأهم لإصلاح الخطأ الحالي ---
+        # يجب إعادته إلى الإصدار المحدد
+        flutter-version: '3.22.2' 
         channel: 'stable'
         cache: true
     
@@ -52,3 +52,4 @@ jobs:
         name: app-release-apk
         path: build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
+
