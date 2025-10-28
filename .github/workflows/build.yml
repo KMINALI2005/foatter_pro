@@ -23,9 +23,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        # --- هذا هو السطر الأهم لإصلاح الخطأ الحالي ---
-        # يجب إعادته إلى الإصدار المحدد
-        flutter-version: '3.22.2' 
+        flutter-version: '3.22.2'
         channel: 'stable'
         cache: true
     
@@ -36,6 +34,11 @@ jobs:
     
     - name: Flutter Doctor
       run: flutter doctor -v
+
+    # --- هذه هي الخطوة الجديدة المضافة ---
+    - name: Accept Android Licenses
+      # هذا الأمر سيقوم بقبول التراخيص تلقائياً بدلاً من السؤال
+      run: yes | flutter doctor --android-licenses
     
     - name: Clean Project
       run: flutter clean
