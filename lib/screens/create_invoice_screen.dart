@@ -1,750 +1,155 @@
-import 'package:flutter/material.dart';
-import '../models/invoice_model.dart';
-import '../models/invoice_item_model.dart';
-import '../models/product_model.dart';
-import '../services/database_service.dart';
+import 'package-flutter/material.dart';
 import '../utils/constants.dart';
-import '../utils/helpers.dart';
+import 'invoices_list_screen.dart';
+import 'products_screen.dart';
+import 'auditing_screen.dart';
+import 'create_invoice_screen.dart';
+import 'settings_screen.dart';
 
-class CreateInvoiceScreen extends StatefulWidget {
-  final Invoice? invoice; // للتعديل
-
-  const CreateInvoiceScreen({super.key, this.invoice});
-
-  @override
-  State<CreateInvoiceScreen> createState() => _CreateInvoiceScreenState();
-}
-
-class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _dbService = DatabaseService.instance;
-
-  // Controllers
-  final _customerNameController = TextEditingController();
-  final _previousBalanceController = TextEditingController();
-  final _amountPaidController = TextEditingController();
-  final _notesController = TextEditingController();
-
-  // Controllers للمنتج الحالي
-  final _productNameController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _itemNotesController = TextEditingController();
-
-  // Focus Nodes للانتقال التلقائي
-  final _customerNameFocus = FocusNode();
-  final _previousBalanceFocus = FocusNode();
-  final _amountPaidFocus = FocusNode();
-  final _productNameFocus = FocusNode();
-  final _quantityFocus = FocusNode();
-  final _priceFocus = FocusNode();
-  final _itemNotesFocus = FocusNode();
-
-  DateTime _selectedDate = DateTime.now();
-  List<InvoiceItem> _items = [];
-  List<String> _customerSuggestions = [];
-  List<Product> _productSuggestions = [];
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialData();
-    
-    if (widget.invoice != null) {
-      _populateFormForEdit();
-    }
-  }
-
-  Future<void> _loadInitialData() async {
-    final customers = await _dbService.getAllCustomerNames();
-    setState(() {
-      _customerSuggestions = customers;
-    });
-  }
-
-  void _populateFormForEdit() {
-    final invoice = widget.invoice!;
-    _customerNameController.text = invoice.customerName;
-    _previousBalanceController.text = invoice.previousBalance.toString();
-    _amountPaidController.text = invoice.amountPaid.toString();
-    _notesController.text = invoice.notes ?? '';
-    _selectedDate = invoice.invoiceDate;
-    // إنشاء نسخة جديدة من القائمة لتجنب تعديل الكائن الأصلي مباشرة
-    _items = List.from(invoice.items);
-  }
-
-  @override
-  void dispose() {
-    _customerNameController.dispose();
-    _previousBalanceController.dispose();
-    _amountPaidController.dispose();
-    _notesController.dispose();
-    _productNameController.dispose();
-    _quantityController.dispose();
-    _priceController.dispose();
-    _itemNotesController.dispose();
-    
-    _customerNameFocus.dispose();
-    _previousBalanceFocus.dispose();
-    _amountPaidFocus.dispose();
-    _productNameFocus.dispose();
-    _quantityFocus.dispose();
-    _priceFocus.dispose();
-    _itemNotesFocus.dispose();
-    
-    super.dispose();
-  }
-
-  Future<void> _searchProducts(String query) async {
-    if (query.isEmpty) {
-      setState(() => _productSuggestions = []);
-      return;
-    }
-    final products = await _dbService.searchProducts(query);
-    setState(() => _productSuggestions = products);
-  }
-
-  void _addItem() {
-    if (_productNameController.text.isEmpty ||
-        _quantityController.text.isEmpty ||
-        _priceController.text.isEmpty) {
-      Helpers.showErrorSnackBar(context, 'الرجاء إدخال بيانات المنتج كاملة');
-      return;
-    }
-
-    final quantity = Helpers.parseDouble(_quantityController.text);
-    final price = Helpers.parseDouble(_priceController.text);
-
-    if (quantity == null || quantity <= 0) {
-      Helpers.showErrorSnackBar(context, 'الرجاء إدخال كمية صحيحة');
-      return;
-    }
-    if (price == null || price < 0) {
-      Helpers.showErrorSnackBar(context, 'الرجاء إدخال سعر صحيح');
-      return;
-    }
-
-    // ==== تم التعديل هنا ====
-    // تم حذف `total` لأنه أصبح getter يُحسب تلقائياً
-    final item = InvoiceItem(
-      productName: _productNameController.text.trim(),
-      quantity: quantity,
-      price: price,
-      notes: _itemNotesController.text.isEmpty 
-          ? null 
-          : _itemNotesController.text.trim(),
-    );
-
-    setState(() {
-      _items.add(item);
-      _productNameController.clear();
-      _quantityController.clear();
-      _priceController.clear();
-      _itemNotesController.clear();
-      _productSuggestions = [];
-    });
-
-    _productNameFocus.requestFocus();
-    Helpers.showSuccessSnackBar(context, 'تم إضافة المنتج');
-  }
-
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
-    Helpers.showSnackBar(context, 'تم حذف المنتج');
-  }
-
-  // Getters لحساب القيم المعروضة على الشاشة
-  double get _currentItemsTotal {
-    return _items.fold(0, (sum, item) => sum + item.total);
-  }
-
-  double get _totalWithPrevious {
-    final previousBalance = Helpers.parseDouble(_previousBalanceController.text) ?? 0;
-    return previousBalance + _currentItemsTotal;
-  }
-
-  double get _remainingBalance {
-    final amountPaid = Helpers.parseDouble(_amountPaidController.text) ?? 0;
-    return _totalWithPrevious - amountPaid;
-  }
-
-  Future<void> _saveInvoice() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_items.isEmpty) {
-      Helpers.showErrorSnackBar(context, 'الرجاء إضافة منتج واحد على الأقل');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final now = DateTime.now();
-
-      if (widget.invoice == null) {
-        // ==== إنشاء فاتورة جديدة (تم تعديل الكود بالكامل) ====
-        final newInvoice = Invoice(
-          invoiceNumber: Helpers.generateInvoiceNumber(),
-          customerName: _customerNameController.text.trim(),
-          invoiceDate: _selectedDate,
-          previousBalance: Helpers.parseDouble(_previousBalanceController.text) ?? 0,
-          amountPaid: Helpers.parseDouble(_amountPaidController.text) ?? 0,
-          notes: _notesController.text.isEmpty ? null : _notesController.text.trim(),
-          items: _items,
-          createdAt: now, // حقل مطلوب
-          updatedAt: now, // حقل مطلوب
-        );
-        await _dbService.createInvoice(newInvoice);
-        Helpers.showSuccessSnackBar(context, AppConstants.invoiceCreated);
-
-      } else {
-        // ==== تحديث فاتورة موجودة (تم تعديل الكود بالكامل) ====
-        final updatedInvoice = widget.invoice!.copyWith(
-          customerName: _customerNameController.text.trim(),
-          invoiceDate: _selectedDate,
-          previousBalance: Helpers.parseDouble(_previousBalanceController.text) ?? 0,
-          amountPaid: Helpers.parseDouble(_amountPaidController.text) ?? 0,
-          notes: _notesController.text.isEmpty ? null : _notesController.text.trim(),
-          items: _items,
-          updatedAt: now, // تحديث تاريخ التعديل
-        );
-        await _dbService.updateInvoice(updatedInvoice);
-        Helpers.showSuccessSnackBar(context, AppConstants.invoiceUpdated);
-      }
-
-      if (mounted) Navigator.pop(context, true);
-
-    } catch (e) {
-      if(mounted) Helpers.showErrorSnackBar(context, 'حدث خطأ: ${e.toString()}');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // ... باقي الكود (Build method and other widgets) يبقى كما هو ...
-  // لقد نسخت لك الكود المتبقي بالكامل لسهولة الاستبدال
+// شاشة بسيطة لعرض "حول التطبيق"
+class AboutScreen extends StatelessWidget {
+  const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.receipt_long, size: 60, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            Text(AppConstants.appName, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('الإصدار ${AppConstants.appVersion}', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32.0),
+              child: Text(
+                'تطبيق شامل لإدارة الفواتير والمنتجات وحسابات الزبائن. يعمل بدون إنترنت مع دعم كامل للغة العربية.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  final VoidCallback onThemeToggle;
+  final bool isDarkMode;
+
+  const HomeScreen({super.key, required this.onThemeToggle, required this.isDarkMode});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _screens = <Widget>[
+    InvoicesListScreen(),
+    ProductsScreen(),
+    AuditingScreen(),
+    SettingsScreen(),
+    AboutScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _navigateToCreateInvoice() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateInvoiceScreen()),
+    ).then((result) {
+      if (result == true) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> titles = ['الفواتير', 'المنتجات', 'مراجعة الحسابات', 'الإعدادات', 'حول التطبيق'];
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.invoice == null ? 'فاتورة جديدة' : 'تعديل الفاتورة'),
+        title: Text(titles[_selectedIndex]),
         actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              ),
+          IconButton(
+            icon: Icon(widget.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            onPressed: widget.onThemeToggle,
+            tooltip: widget.isDarkMode ? 'الوضع النهاري' : 'الوضع الليلي',
+          ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton.extended(
+              onPressed: _navigateToCreateInvoice,
+              icon: const Icon(Icons.add),
+              label: const Text('فاتورة جديدة'),
             )
-          else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveInvoice,
-              tooltip: 'حفظ الفاتورة',
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppConstants.paddingMedium),
-          children: [
-            // معلومات الزبون
-            _buildSectionTitle('معلومات الزبون'),
-            _buildCustomerNameField(),
-            const SizedBox(height: 16),
-            _buildDateField(),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: _previousBalanceController,
-                    label: 'الحساب السابق',
-                    hint: '0',
-                    icon: Icons.account_balance_wallet,
-                    keyboardType: TextInputType.number,
-                    focusNode: _previousBalanceFocus,
-                    nextFocus: _amountPaidFocus,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    controller: _amountPaidController,
-                    label: 'المبلغ الواصل',
-                    hint: '0',
-                    icon: Icons.payment,
-                    keyboardType: TextInputType.number,
-                    focusNode: _amountPaidFocus,
-                    onFieldSubmitted: (_) => _productNameFocus.requestFocus(),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // إضافة منتج
-            _buildSectionTitle('إضافة منتج'),
-            _buildProductNameField(),
-            const SizedBox(height: 16),
-            
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildTextField(
-                    controller: _quantityController,
-                    label: 'الكمية',
-                    hint: '1',
-                    icon: Icons.shopping_cart,
-                    keyboardType: TextInputType.number,
-                    focusNode: _quantityFocus,
-                    nextFocus: _priceFocus,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: _buildTextField(
-                    controller: _priceController,
-                    label: 'السعر',
-                    hint: '0',
-                    icon: Icons.attach_money,
-                    keyboardType: TextInputType.number,
-                    focusNode: _priceFocus,
-                    nextFocus: _itemNotesFocus,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: _addItem,
-                    tooltip: 'إضافة المنتج',
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            _buildTextField(
-              controller: _itemNotesController,
-              label: 'ملاحظات المنتج (اختياري)',
-              hint: 'ملاحظات...',
-              icon: Icons.note,
-              maxLines: 2,
-              focusNode: _itemNotesFocus,
-              onFieldSubmitted: (_) => _addItem(),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            if (_items.isNotEmpty) ...[
-              _buildSectionTitle('المنتجات المضافة (${_items.length})'),
-              _buildItemsList(),
-              const SizedBox(height: 24),
-            ],
-            
-            _buildTotalsCard(),
-            
-            const SizedBox(height: 16),
-            
-            _buildTextField(
-              controller: _notesController,
-              label: 'ملاحظات الفاتورة (اختياري)',
-              hint: 'ملاحظات...',
-              icon: Icons.description,
-              maxLines: 3,
-            ),
-            
-            const SizedBox(height: 80),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isLoading ? null : _saveInvoice,
-        icon: _isLoading 
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.save),
-        label: Text(_isLoading ? 'جاري الحفظ...' : 'حفظ الفاتورة'),
-      ),
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              color: AppConstants.primaryColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
+      // ==== هذا هو التعديل الأهم لحل مشكلة الشريط المخفي ====
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        // إعطاء ألوان صريحة للشريط لضمان ظهوره
+        backgroundColor: theme.colorScheme.surface,
+        indicatorColor: theme.colorScheme.primary.withOpacity(0.2),
+        
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'الفواتير',
           ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          NavigationDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: 'المنتجات',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_outlined),
+            selectedIcon: Icon(Icons.account_balance),
+            label: 'المراجعة',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'الإعدادات',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.info_outline),
+            selectedIcon: Icon(Icons.info),
+            label: 'حول',
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCustomerNameField() {
-    return Autocomplete<String>(
-      optionsBuilder: (textEditingValue) {
-        if (textEditingValue.text.isEmpty) {
-          return const Iterable<String>.empty();
-        }
-        return _customerSuggestions.where((name) {
-          return name.toLowerCase().contains(
-            textEditingValue.text.toLowerCase(),
-          );
-        });
-      },
-      onSelected: (selection) {
-        _customerNameController.text = selection;
-        _previousBalanceFocus.requestFocus();
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        _customerNameController.text = controller.text;
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: 'اسم الزبون *',
-            hintText: 'أدخل اسم الزبون',
-            prefixIcon: const Icon(Icons.person),
-            suffixIcon: controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      controller.clear();
-                      _customerNameController.clear();
-                    },
-                  )
-                : null,
-          ),
-          textInputAction: TextInputAction.next,
-          onFieldSubmitted: (_) => _previousBalanceFocus.requestFocus(),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return AppConstants.requiredField;
-            }
-            return null;
-          },
-          onChanged: (value) {
-            _customerNameController.text = value;
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildProductNameField() {
-    return Autocomplete<Product>(
-      optionsBuilder: (textEditingValue) async {
-        if (textEditingValue.text.isEmpty) {
-          return const Iterable<Product>.empty();
-        }
-        await _searchProducts(textEditingValue.text);
-        return _productSuggestions;
-      },
-      displayStringForOption: (product) => product.name,
-      onSelected: (product) {
-        _productNameController.text = product.name;
-        _priceController.text = product.price.toString();
-        _quantityFocus.requestFocus();
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        _productNameController.text = controller.text;
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: 'اسم المنتج *',
-            hintText: 'ابحث أو أدخل اسم منتج جديد',
-            prefixIcon: const Icon(Icons.inventory),
-            suffixIcon: controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      controller.clear();
-                      _productNameController.clear();
-                      _priceController.clear();
-                    },
-                  )
-                : null,
-          ),
-          textInputAction: TextInputAction.next,
-          onFieldSubmitted: (_) => _quantityFocus.requestFocus(),
-          onChanged: (value) {
-            _productNameController.text = value;
-          },
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: options.length,
-                itemBuilder: (context, index) {
-                  final product = options.elementAt(index);
-                  return ListTile(
-                    title: Text(product.name),
-                    subtitle: Text(
-                      Helpers.formatCurrency(product.price),
-                      style: const TextStyle(
-                        color: AppConstants.primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onTap: () => onSelected(product),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    FocusNode? focusNode,
-    FocusNode? nextFocus,
-    Function(String)? onFieldSubmitted,
-  }) {
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon),
-      ),
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      textInputAction: nextFocus != null || onFieldSubmitted != null
-          ? TextInputAction.next
-          : TextInputAction.done,
-      onFieldSubmitted: (value) {
-        if (onFieldSubmitted != null) {
-          onFieldSubmitted(value);
-        } else if (nextFocus != null) {
-          nextFocus.requestFocus();
-        }
-      },
-    );
-  }
-
-  Widget _buildDateField() {
-    return InkWell(
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-          locale: const Locale('ar'),
-        );
-        if (date != null) {
-          setState(() => _selectedDate = date);
-        }
-      },
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'تاريخ الفاتورة',
-          prefixIcon: Icon(Icons.calendar_today),
-        ),
-        child: Text(
-          Helpers.formatDate(_selectedDate),
-          style: const TextStyle(fontSize: 16),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildItemsList() {
-    return Card(
-      elevation: 2,
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _items.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final item = _items[index];
-          return ListTile(
-            title: Text(
-              item.productName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'الكمية: ${Helpers.formatNumber(item.quantity)} × ${Helpers.formatCurrency(item.price)}',
-                ),
-                if (item.notes != null && item.notes!.isNotEmpty)
-                  Text(
-                    item.notes!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  Helpers.formatCurrency(item.total),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryColor,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: AppConstants.dangerColor),
-                  onPressed: () => _removeItem(index),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTotalsCard() {
-    return Card(
-      elevation: 4,
-      color: AppConstants.primaryColor.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.paddingMedium),
-        child: Column(
-          children: [
-            _buildTotalRow(
-              'مجموع الفاتورة الحالية:',
-              _currentItemsTotal,
-              isMain: false,
-            ),
-            if (Helpers.parseDouble(_previousBalanceController.text) != null &&
-                Helpers.parseDouble(_previousBalanceController.text)! > 0) ...[
-              const SizedBox(height: 8),
-              _buildTotalRow(
-                'الحساب السابق:',
-                Helpers.parseDouble(_previousBalanceController.text) ?? 0,
-                isMain: false,
-              ),
-            ],
-            const Divider(height: 20, thickness: 2),
-            _buildTotalRow(
-              'الإجمالي الكلي:',
-              _totalWithPrevious,
-              isMain: true,
-            ),
-            if (Helpers.parseDouble(_amountPaidController.text) != null &&
-                Helpers.parseDouble(_amountPaidController.text)! > 0) ...[
-              const SizedBox(height: 8),
-              _buildTotalRow(
-                'المبلغ الواصل:',
-                Helpers.parseDouble(_amountPaidController.text) ?? 0,
-                isMain: false,
-                color: AppConstants.successColor,
-              ),
-              const Divider(height: 20, thickness: 2),
-              _buildTotalRow(
-                'المتبقي:',
-                _remainingBalance,
-                isMain: true,
-                color: _remainingBalance >= 0
-                    ? AppConstants.dangerColor
-                    : AppConstants.successColor,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTotalRow(
-    String label,
-    double amount, {
-    bool isMain = false,
-    Color? color,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isMain ? 18 : 16,
-            fontWeight: isMain ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        Text(
-          Helpers.formatCurrency(amount),
-          style: TextStyle(
-            fontSize: isMain ? 20 : 16,
-            fontWeight: FontWeight.bold,
-            color: color ?? AppConstants.primaryColor,
-          ),
-        ),
-      ],
     );
   }
 }
