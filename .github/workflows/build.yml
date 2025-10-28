@@ -35,11 +35,11 @@ jobs:
     - name: Flutter Doctor
       run: flutter doctor -v
 
-    # --- هذه هي الخطوة الجديدة المضافة ---
+    # --- هذه خطوة إضافية مهمة لضمان قبول التراخيص ---
     - name: Accept Android Licenses
-      # هذا الأمر سيقوم بقبول التراخيص تلقائياً بدلاً من السؤال
       run: yes | flutter doctor --android-licenses
     
+    # ==== هذه هي الخطوة التي طلبتها ====
     - name: Clean Project
       run: flutter clean
     
@@ -55,4 +55,3 @@ jobs:
         name: app-release-apk
         path: build/app/outputs/flutter-apk/app-release.apk
         retention-days: 30
-
