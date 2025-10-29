@@ -17,6 +17,23 @@ class _AuditingScreenState extends State<AuditingScreen> {
   final _dbService = DatabaseService.instance;
   final _searchController = TextEditingController();
 
+  // دالة الحاوي المرئي للحقول - نفس الحل المستخدم في create_invoice_screen.dart
+  Widget _buildVisualInputContainer({required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      elevation: 1.0,
+      color: isDark ? AppConstants.darkSurface : AppConstants.cardBackground,
+      shadowColor: Colors.black.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: child,
+      ),
+    );
+  }
+
   Map<String, List<Invoice>> _customerInvoices = {};
   Map<String, List<Invoice>> _filteredCustomers = {};
   Map<String, dynamic> _statistics = {};
@@ -107,30 +124,25 @@ class _AuditingScreenState extends State<AuditingScreen> {
     return Container(
       color: Theme.of(context).cardColor,
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'البحث عن زبون...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _filterCustomers('');
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[800]
-              : Colors.grey[100],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide.none,
+      child: _buildVisualInputContainer(
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'البحث عن زبون...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      _filterCustomers('');
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
           ),
+          onChanged: _filterCustomers,
         ),
-        onChanged: _filterCustomers,
       ),
     );
   }

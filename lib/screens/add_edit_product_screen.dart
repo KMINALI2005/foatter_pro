@@ -142,6 +142,23 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
+  // دالة الحاوي المرئي للحقول - نفس الحل المستخدم في create_invoice_screen.dart
+  Widget _buildVisualInputContainer({required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      elevation: 1.0,
+      color: isDark ? AppConstants.darkSurface : AppConstants.cardBackground,
+      shadowColor: Colors.black.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -150,20 +167,19 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+    return _buildVisualInputContainer(
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: InputBorder.none,
         ),
-        filled: true,
+        validator: validator,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        autofocus: widget.product == null,
       ),
-      validator: validator,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      autofocus: widget.product == null,
     );
   }
 }
