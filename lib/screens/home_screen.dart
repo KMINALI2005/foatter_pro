@@ -7,9 +7,9 @@ import 'create_invoice_screen.dart';
 import 'settings_screen.dart';
 import 'add_edit_product_screen.dart';
 
-// ==== تم التأكد من أن هذه الدالة كاملة وصحيحة ====
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -27,9 +27,17 @@ class AboutScreen extends StatelessWidget {
               child: const Icon(Icons.receipt_long, size: 60, color: Colors.white),
             ),
             const SizedBox(height: 24),
-            Text(AppConstants.appName, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              AppConstants.appName,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
             const SizedBox(height: 8),
-            Text('الإصدار ${AppConstants.appVersion}', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'الإصدار ${AppConstants.appVersion}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 16),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 32.0),
@@ -50,7 +58,11 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onThemeToggle;
   final bool isDarkMode;
 
-  const HomeScreen({super.key, required this.onThemeToggle, required this.isDarkMode});
+  const HomeScreen({
+    super.key,
+    required this.onThemeToggle,
+    required this.isDarkMode,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -91,30 +103,83 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['الفواتير', 'المنتجات', 'مراجعة الحسابات', 'الإعدادات', 'حول التطبيق'];
+    final List<String> titles = [
+      'الفواتير',
+      'المنتجات',
+      'مراجعة الحسابات',
+      'الإعدادات',
+      'حول التطبيق'
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_selectedIndex]),
         actions: [
           IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            icon: Icon(
+              widget.isDarkMode
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+            ),
             onPressed: widget.onThemeToggle,
           ),
         ],
       ),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'الفواتير'),
-          NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'المنتجات'),
-          NavigationDestination(icon: Icon(Icons.account_balance_outlined), label: 'المراجعة'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'الإعدادات'),
-          NavigationDestination(icon: Icon(Icons.info_outline), label: 'حول'),
-        ],
+      
+      // ✅ الحل: شريط تنقل واضح وبارز
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onItemTapped,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2d2d2d)
+              : Colors.white,
+          indicatorColor: AppConstants.primaryColor.withOpacity(0.2),
+          height: 70,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long, size: 28),
+              label: 'الفواتير',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2, size: 28),
+              label: 'المنتجات',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_outlined),
+              selectedIcon: Icon(Icons.account_balance, size: 28),
+              label: 'المراجعة',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings, size: 28),
+              label: 'الإعدادات',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.info_outline),
+              selectedIcon: Icon(Icons.info, size: 28),
+              label: 'حول',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -125,6 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _navigateToCreateInvoice,
         icon: const Icon(Icons.add),
         label: const Text('فاتورة جديدة'),
+        backgroundColor: AppConstants.primaryColor,
       );
     }
     if (_selectedIndex == 1) {
