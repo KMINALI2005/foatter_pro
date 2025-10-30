@@ -1,59 +1,44 @@
-name: best_flutter_ui_templates
-description: A new Flutter project.
+name: invoices_pro
+description: تطبيق إدارة الفواتير والمنتجات - يعمل بدون إنترنت مع دعم كامل للغة العربية
 
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # الأيقونات
-  cupertino_icons: ^1.0.8
-  font_awesome_flutter: ^10.8.0
-
-  # UI والرسوم المتحركة
-  flutter_rating_bar: ^4.0.1
-  animations: ^2.0.11
-  flutter_slidable: ^4.0.3 # تم تحديث الإصدار ليتوافق
-
-  # التاريخ والوقت
-  intl: ^0.20.2
-
+  
   # قاعدة البيانات
-  sqflite: ^2.3.3
-  path: ^1.9.0
-
-  # PDF والطباعة
-  pdf: ^3.11.0 # تم توحيد الإصدارات
-  printing: ^5.12.0
-
-  # المشاركة والملفات
-  share_plus: ^12.0.1 # تم توحيد الإصدارات
-  path_provider: ^2.1.3
-  file_picker: ^10.3.3
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  
+  # الواجهة والتأثيرات
+  flutter_slidable: ^3.0.1
+  
+  # التاريخ والوقت
+  intl: ^0.18.1
+  
+  # الملفات والمشاركة
+  file_picker: ^5.5.0
+  path_provider: ^2.1.1
+  share_plus: ^7.1.0
+  
+  cupertino_icons: ^1.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  flutter_lints: ^6.0.0
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
-
-  # ==== تم تفعيل هذا القسم ====
-  # تأكد من أن اسم المجلد هو 'asset' (مفرد)
-  assets:
-    - asset/fonts/
-
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: asset/fonts/Cairo-Regular.ttf
-        - asset: asset/fonts/Cairo-Bold.ttf
-          weight: 700
+  
+  # assets:
+    # إضافة أي صور أو أيقونات إذا لزم الأمر
+    
+  # تم إزالة الخطوط المخصصة لحل مشكلة البناء للإنتاج
+  # سيتم استخدام الخط الافتراضي للنظام الذي يدعم العربية
