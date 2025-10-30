@@ -12,8 +12,6 @@ class PrintService {
 
   Future<void> printInvoice(Invoice invoice) async {
     final pdf = pw.Document();
-    
-    // Use default fonts instead of Cairo fonts
     final font = await PdfGoogleFonts.helvetica();
     final fontBold = await PdfGoogleFonts.helveticaBold();
 
@@ -50,12 +48,9 @@ class PrintService {
 
   Future<void> printCustomerStatement(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
-    
-    // Use default fonts instead of Cairo fonts
     final font = await PdfGoogleFonts.helvetica();
     final fontBold = await PdfGoogleFonts.helveticaBold();
     
-    // ==== تم التعديل هنا ====
     final totalAmount = invoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
     final paidAmount = invoices.fold(0.0, (sum, inv) => sum + inv.amountPaid);
     final remainingAmount = invoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
@@ -169,7 +164,6 @@ class PrintService {
             _buildTotalRow('الحساب السابق:', invoice.previousBalance, font, fontBold),
           ],
           pw.Divider(thickness: 2, color: PdfColor.fromHex('#10b981')),
-          // ==== تم التعديل هنا ====
           _buildTotalRow('الإجمالي الكلي:', invoice.totalWithPrevious, font, fontBold, isMain: true),
           if (invoice.amountPaid > 0) ...[
             pw.SizedBox(height: 8),
@@ -267,7 +261,6 @@ class PrintService {
       data: invoices.map((invoice) => [
         invoice.invoiceNumber,
         Helpers.formatDate(invoice.invoiceDate, useArabic: false),
-        // ==== تم التعديل هنا ====
         Helpers.formatCurrency(invoice.totalWithPrevious, useArabic: false),
         Helpers.formatCurrency(invoice.amountPaid, useArabic: false),
         Helpers.formatCurrency(invoice.remainingBalance, useArabic: false),

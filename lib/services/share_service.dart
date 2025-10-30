@@ -60,8 +60,6 @@ class ShareService {
 
   Future<pw.Document> _generateInvoicePDF(Invoice invoice) async {
     final pdf = pw.Document();
-    
-    // Use default fonts instead of Cairo fonts
     final font = await PdfGoogleFonts.helvetica();
     final fontBold = await PdfGoogleFonts.helveticaBold();
 
@@ -95,8 +93,6 @@ class ShareService {
 
   Future<pw.Document> _generateStatementPDF(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
-    
-    // Use default fonts instead of Cairo fonts
     final font = await PdfGoogleFonts.helvetica();
     final fontBold = await PdfGoogleFonts.helveticaBold();
     
