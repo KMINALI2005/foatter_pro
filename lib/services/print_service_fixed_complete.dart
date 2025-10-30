@@ -12,28 +12,31 @@ class PrintService {
 
   Future<void> printInvoice(Invoice invoice) async {
     final pdf = pw.Document();
-    final font = await PdfGoogleFonts.helvetica();
-    final fontBold = await PdfGoogleFonts.helveticaBold();
+    
+    // استخدام خطوط Roboto المتاحة في النظام
+    final font = await pw.Font.ttf(await rootBundle.load('packages/pdf/fonts/ttf/Roboto-Regular.ttf'));
+    final fontBold = await pw.Font.ttf(await rootBundle.load('packages/pdf/fonts/ttf/Roboto-Bold.ttf'));
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildInvoiceHeader(invoice, fontBold),
+              _buildInvoiceHeader(invoice),
               pw.SizedBox(height: 20),
               pw.Divider(thickness: 2),
               pw.SizedBox(height: 20),
-              _buildCustomerInfo(invoice, font, fontBold),
+              _buildCustomerInfo(invoice),
               pw.SizedBox(height: 20),
-              _buildProductsTable(invoice, font, fontBold),
+              _buildProductsTable(invoice),
               pw.SizedBox(height: 20),
-              _buildTotals(invoice, font, fontBold),
+              _buildTotals(invoice),
               pw.Spacer(),
-              _buildFooter(font),
+              _buildFooter(),
             ],
           );
         },
@@ -48,8 +51,9 @@ class PrintService {
 
   Future<void> printCustomerStatement(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
-    final font = await PdfGoogleFonts.helvetica();
-    final fontBold = await PdfGoogleFonts.helveticaBold();
+    
+    final font = await pw.Font.ttf(await rootBundle.load('packages/pdf/fonts/ttf/Roboto-Regular.ttf'));
+    final fontBold = await pw.Font.ttf(await rootBundle.load('packages/pdf/fonts/ttf/Roboto-Bold.ttf'));
     
     final totalAmount = invoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
     final paidAmount = invoices.fold(0.0, (sum, inv) => sum + inv.amountPaid);
@@ -59,17 +63,18 @@ class PrintService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (context) {
           return [
-            _buildStatementHeader(customerName, fontBold),
+            _buildStatementHeader(customerName),
             pw.SizedBox(height: 20),
             pw.Divider(thickness: 2),
             pw.SizedBox(height: 20),
-            _buildAccountSummary(totalAmount, paidAmount, remainingAmount, font, fontBold),
+            _buildAccountSummary(totalAmount, paidAmount, remainingAmount),
             pw.SizedBox(height: 30),
-            _buildInvoicesTable(invoices, font, fontBold),
+            _buildInvoicesTable(invoices),
             pw.SizedBox(height: 30),
-            _buildSignature(font),
+            _buildSignature(),
           ];
         },
       ),
@@ -81,7 +86,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildInvoiceHeader(Invoice invoice, pw.Font font) {
+  pw.Widget _buildInvoiceHeader(Invoice invoice) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(20),
       decoration: pw.BoxDecoration(
@@ -101,7 +106,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildCustomerInfo(Invoice invoice, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildCustomerInfo(Invoice invoice) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
@@ -127,7 +132,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildProductsTable(Invoice invoice, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildProductsTable(Invoice invoice) {
     return pw.Table.fromTextArray(
       border: pw.TableBorder.all(color: PdfColor.fromHex('#d1fae5')),
       headerStyle: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
@@ -149,7 +154,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildTotals(Invoice invoice, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildTotals(Invoice invoice) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
@@ -158,25 +163,25 @@ class PrintService {
       ),
       child: pw.Column(
         children: [
-          _buildTotalRow('مجموع الفاتورة:', invoice.total, font, fontBold),
+          _buildTotalRow('مجموع الفاتورة:', invoice.total, isMain: false),
           if (invoice.previousBalance > 0) ...[
             pw.SizedBox(height: 8),
-            _buildTotalRow('الحساب السابق:', invoice.previousBalance, font, fontBold),
+            _buildTotalRow('الحساب السابق:', invoice.previousBalance, isMain: false),
           ],
           pw.Divider(thickness: 2, color: PdfColor.fromHex('#10b981')),
-          _buildTotalRow('الإجمالي الكلي:', invoice.totalWithPrevious, font, fontBold, isMain: true),
+          _buildTotalRow('الإجمالي الكلي:', invoice.totalWithPrevious, isMain: true),
           if (invoice.amountPaid > 0) ...[
             pw.SizedBox(height: 8),
-            _buildTotalRow('المبلغ الواصل:', invoice.amountPaid, font, fontBold),
+            _buildTotalRow('المبلغ الواصل:', invoice.amountPaid, isMain: false),
             pw.Divider(thickness: 2, color: PdfColor.fromHex('#10b981')),
-            _buildTotalRow('المتبقي:', invoice.remainingBalance, font, fontBold, isMain: true),
+            _buildTotalRow('المتبقي:', invoice.remainingBalance, isMain: true),
           ],
         ],
       ),
     );
   }
 
-  pw.Widget _buildTotalRow(String label, double amount, pw.Font font, pw.Font fontBold, {bool isMain = false}) {
+  pw.Widget _buildTotalRow(String label, double amount, {bool isMain = false}) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
@@ -196,7 +201,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildFooter(pw.Font font) {
+  pw.Widget _buildFooter() {
     return pw.Center(
       child: pw.Text(
         'شكراً لتعاملكم معنا - ${AppConstants.appName}',
@@ -205,7 +210,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildStatementHeader(String customerName, pw.Font font) {
+  pw.Widget _buildStatementHeader(String customerName) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(20),
       decoration: pw.BoxDecoration(
@@ -225,7 +230,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildAccountSummary(double total, double paid, double remaining, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildAccountSummary(double total, double paid, double remaining) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
@@ -235,16 +240,16 @@ class PrintService {
       child: pw.Column(children: [
         pw.Text('ملخص الحساب', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 15),
-        _buildTotalRow('الإجمالي الكلي:', total, font, fontBold),
+        _buildTotalRow('الإجمالي الكلي:', total, isMain: false),
         pw.SizedBox(height: 8),
-        _buildTotalRow('المبالغ المدفوعة:', paid, font, fontBold),
+        _buildTotalRow('المبالغ المدفوعة:', paid, isMain: false),
         pw.Divider(thickness: 2, color: PdfColor.fromHex('#10b981')),
-        _buildTotalRow('المتبقي:', remaining, font, fontBold, isMain: true),
+        _buildTotalRow('المتبقي:', remaining, isMain: true),
       ]),
     );
   }
 
-  pw.Widget _buildInvoicesTable(List<Invoice> invoices, pw.Font font, pw.Font fontBold) {
+  pw.Widget _buildInvoicesTable(List<Invoice> invoices) {
     return pw.Table.fromTextArray(
       border: pw.TableBorder.all(color: PdfColor.fromHex('#d1fae5')),
       headerStyle: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
@@ -268,7 +273,7 @@ class PrintService {
     );
   }
 
-  pw.Widget _buildSignature(pw.Font font) {
+  pw.Widget _buildSignature() {
     return pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('توقيع الزبون:', style: pw.TextStyle()),
