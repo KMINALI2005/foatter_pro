@@ -43,22 +43,20 @@ class AppConstants {
   static const Duration animationDuration = Duration(milliseconds: 300);
   static const Duration shortAnimationDuration = Duration(milliseconds: 150);
   
-  // Text Styles
+  // Text Styles - تم تحسينها لتعمل مع Theme
   static const TextStyle headingStyle = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
-    color: textDark,
+    // تم إزالة اللون الثابت ليستخدم لون Theme تلقائياً
   );
   
   static const TextStyle subHeadingStyle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: textDark,
   );
   
   static const TextStyle bodyStyle = TextStyle(
     fontSize: 16,
-    color: textDark,
   );
   
   static const TextStyle captionStyle = TextStyle(
@@ -122,17 +120,21 @@ class AppConstants {
 // Theme Data
 class AppTheme {
   static ThemeData lightTheme = ThemeData(
-    // ==== هذا هو السطر المهم الذي تم إضافته ====
-    useMaterial3: true,
+    // ==== تم التغيير إلى Material 2 لتوافق أفضل مع جميع الأجهزة ====
+    useMaterial3: false,
+    brightness: Brightness.light,
+    primaryColor: AppConstants.primaryColor,
     
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppConstants.primaryColor,
-      brightness: Brightness.light,
+    colorScheme: const ColorScheme.light(
       primary: AppConstants.primaryColor,
       secondary: AppConstants.accentColor,
       error: AppConstants.dangerColor,
       surface: AppConstants.cardBackground,
       background: AppConstants.backgroundLight,
+      onPrimary: Colors.white,
+      onSecondary: AppConstants.textDark,
+      onSurface: AppConstants.textDark,
+      onBackground: AppConstants.textDark,
     ),
     scaffoldBackgroundColor: AppConstants.backgroundLight,
     appBarTheme: const AppBarTheme(
@@ -205,17 +207,21 @@ class AppTheme {
   );
   
   static ThemeData darkTheme = ThemeData(
-    // ==== وهذا هو السطر الثاني المهم الذي تم إضافته ====
-    useMaterial3: true,
+    // ==== تم التغيير إلى Material 2 لتوافق أفضل ====
+    useMaterial3: false,
+    brightness: Brightness.dark,
+    primaryColor: AppConstants.darkPrimary,
     
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppConstants.darkPrimary,
-      brightness: Brightness.dark,
+    colorScheme: const ColorScheme.dark(
       primary: AppConstants.darkPrimary,
       secondary: AppConstants.accentColor,
       error: AppConstants.dangerColor,
       surface: AppConstants.darkSurface,
       background: AppConstants.darkBackground,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: Colors.white,
+      onBackground: Colors.white,
     ),
     scaffoldBackgroundColor: AppConstants.darkBackground,
     appBarTheme: const AppBarTheme(
