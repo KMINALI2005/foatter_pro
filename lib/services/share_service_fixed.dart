@@ -1,16 +1,64 @@
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/invoice_model.dart';
-import '../utils/helpers.dart';
 import '../utils/constants.dart';
+import '../utils/helpers.dart';
 
-class PrintService {
-  static final PrintService instance = PrintService._init();
-  PrintService._init();
+class ShareService {
+  static final ShareService instance = ShareService._init();
+  ShareService._init();
 
-  Future<void> printInvoice(Invoice invoice) async {
+  Future<void> shareInvoice(Invoice invoice) async {
+    try {
+      final pdf = await _generateInvoicePDF(invoice);
+      final bytes = await pdf.save();
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/invoice_${invoice.invoiceNumber}.pdf');
+      await file.writeAsBytes(bytes);
+      
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        subject: 'فاتورة رقم ${invoice.invoiceNumber}',
+        text: 'مرفق فاتورة رقم ${invoice.invoiceNumber} للزبون ${invoice.customerName}',
+      );
+      
+      // حذف الملف المؤقت
+      file.delete();
+    } catch (e) {
+      print('خطأ في مشاركة الفاتورة: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> shareCustomerStatement(String customerName, List<Invoice> invoices) async {
+    try {
+      final pdf = await _generateStatementPDF(customerName, invoices);
+      final bytes = await pdf.save();
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/statement_${customerName.replaceAll(' ', '_')}.pdf');
+      await file.writeAsBytes(bytes);
+      
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        subject: 'كشف حساب ${customerName}',
+        text: 'مرفق كشف حساب للزبون ${customerName}',
+      );
+      
+      // حذف الملف المؤقت
+      file.delete();
+    } catch (e) {
+      print('خطأ في مشاركة كشف الحساب: $e');
+      rethrow;
+    }
+  }
+
+  Future<pw.Document> _generateInvoicePDF(Invoice invoice) async {
     final pdf = pw.Document();
     
     // Use default fonts instead of Cairo fonts
@@ -42,20 +90,16 @@ class PrintService {
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
-      name: 'فاتورة_${invoice.invoiceNumber}.pdf',
-    );
+    return pdf;
   }
 
-  Future<void> printCustomerStatement(String customerName, List<Invoice> invoices) async {
+  Future<pw.Document> _generateStatementPDF(String customerName, List<Invoice> invoices) async {
     final pdf = pw.Document();
     
     // Use default fonts instead of Cairo fonts
     final font = await PdfGoogleFonts.helvetica();
     final fontBold = await PdfGoogleFonts.helveticaBold();
     
-    // ==== تم التعديل هنا ====
     final totalAmount = invoices.fold(0.0, (sum, inv) => sum + inv.totalWithPrevious);
     final paidAmount = invoices.fold(0.0, (sum, inv) => sum + inv.amountPaid);
     final remainingAmount = invoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
@@ -80,10 +124,7 @@ class PrintService {
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
-      name: 'كشف_حساب_$customerName.pdf',
-    );
+    return pdf;
   }
 
   pw.Widget _buildInvoiceHeader(Invoice invoice, pw.Font font) {
@@ -169,7 +210,6 @@ class PrintService {
             _buildTotalRow('الحساب السابق:', invoice.previousBalance, font, fontBold),
           ],
           pw.Divider(thickness: 2, color: PdfColor.fromHex('#10b981')),
-          // ==== تم التعديل هنا ====
           _buildTotalRow('الإجمالي الكلي:', invoice.totalWithPrevious, font, fontBold, isMain: true),
           if (invoice.amountPaid > 0) ...[
             pw.SizedBox(height: 8),
@@ -267,7 +307,6 @@ class PrintService {
       data: invoices.map((invoice) => [
         invoice.invoiceNumber,
         Helpers.formatDate(invoice.invoiceDate, useArabic: false),
-        // ==== تم التعديل هنا ====
         Helpers.formatCurrency(invoice.totalWithPrevious, useArabic: false),
         Helpers.formatCurrency(invoice.amountPaid, useArabic: false),
         Helpers.formatCurrency(invoice.remainingBalance, useArabic: false),
