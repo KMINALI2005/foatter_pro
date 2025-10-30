@@ -1,0 +1,141 @@
+name: بناء تطبيق الفواتير - APK (بدون توقيع)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'نوع البناء'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      architecture:
+        description: 'نوع المعالج'
+        required: true
+        default: 'arm64'
+        type: choice
+        options:
+          - arm64
+          - armeabi
+          - both
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: استنساخ المستودع
+      uses: actions/checkout@v4
+      
+    - name: إعداد Java (JDK 17)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: إعداد Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        
+    - name: إعداد Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: 33.0.2
+        target: 'default'
+        
+    - name: تثبيت التراخيص
+      run: |
+        echo "y" | sdkmanager --licenses
+        echo "y" | sdkmanager --licenses all
+        
+    - name: تثبيت التبعيات
+      run: flutter pub get
+      
+    - name: تنظيف البناء السابق
+      run: flutter clean
+      
+    - name: فحص المشروع
+      run: flutter doctor -v
+      
+    - name: بناء APK
+      run: |
+        echo "بدأ بناء APK - نوع البناء: ${{ github.event.inputs.build_type }}"
+        echo "نوع المعالج: ${{ github.event.inputs.architecture }}"
+        
+        case "${{ github.event.inputs.architecture }}" in
+          "arm64")
+            flutter build apk --target-platform android-arm64 --${{ github.event.inputs.build_type }}
+            ;;
+          "armeabi")
+            flutter build apk --target-platform android-arm --${{ github.event.inputs.build_type }}
+            ;;
+          "both")
+            flutter build apk --target-platform android-arm64,android-arm --${{ github.event.inputs.build_type }}
+            ;;
+        esac
+        
+    - name: إنشاء تقرير البناء
+      run: |
+        echo "# تقرير بناء تطبيق الفواتير" > build-report.md
+        echo "" >> build-report.md
+        echo "**تاريخ البناء:** $(date)" >> build-report.md
+        echo "**نوع البناء:** ${{ github.event.inputs.build_type }}" >> build-report.md
+        echo "**نوع المعالج:** ${{ github.event.inputs.architecture }}" >> build-report.md
+        echo "**فرع المستودع:** ${{ github.ref_name }}" >> build-report.md
+        echo "**رقم التحديث:** ${{ github.run_number }}" >> build-report.md
+        echo "" >> build-report.md
+        echo "## تفاصيل الملف" >> build-report.md
+        ls -la build/app/outputs/flutter-apk/ >> build-report.md
+        echo "" >> build-report.md
+        echo "## حجم الملفات" >> build-report.md
+        du -h build/app/outputs/flutter-apk/ >> build-report.md
+        
+    - name: رفع التقرير
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-report
+        path: build-report.md
+        retention-days: 90
+        
+    - name: رفع APK النهائي
+      uses: actions/upload-artifact@v4
+      with:
+        name: invoice-pro-${{ github.event.inputs.build_type }}-${{ github.event.inputs.architecture }}
+        path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.build_type }}.apk
+        retention-days: 90
+        
+    - name: رفع ملفات إضافية
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-${{ github.event.inputs.build_type }}
+        path: |
+          build/logs/
+          build/reports/
+        retention-days: 30
+        
+    - name: رسالة النجاح
+      if: success()
+      run: |
+        echo "🎉 تم بناء APK بنجاح!"
+        echo "نوع البناء: ${{ github.event.inputs.build_type }}"
+        echo "نوع المعالج: ${{ github.event.inputs.architecture }}"
+        echo ""
+        echo "📱 يمكنك تحميل APK من تبويب 'Artifacts' في أعلى هذه الصفحة"
+        echo "⏰ رابط التحميل متاح لمدة 90 يوماً"
+        
+    - name: رسالة الفشل
+      if: failure()
+      run: |
+        echo "❌ فشل في بناء APK"
+        echo ""
+        echo "🔧 نصائح لحل المشاكل:"
+        echo "1. تأكد من صحة pubspec.yaml"
+        echo "2. تحقق من وجود الأخطاء في الكود"
+        echo "3. شغل workflow التشخيص أولاً"
+        echo ""
+        echo "📋 راجع ملف build/logs/ لمزيد من التفاصيل"

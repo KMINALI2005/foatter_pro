@@ -1,0 +1,172 @@
+name: تشخيص وإصلاح المشروع
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: استنساخ المستودع
+      uses: actions/checkout@v4
+      
+    - name: إعداد Java (JDK 17)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: إعداد Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        
+    - name: إعداد Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: 33.0.2
+        target: 'default'
+        
+    - name: تثبيت تراخيص Android
+      run: |
+        echo "y" | sdkmanager --licenses
+        echo "y" | sdkmanager --licenses all
+        
+    - name: فحص البيئة
+      run: |
+        echo "=== فحص إصدار Flutter ==="
+        flutter --version
+        
+        echo ""
+        echo "=== فحص المكونات ==="
+        flutter doctor -v
+        
+        echo ""
+        echo "=== فحص Android SDK ==="
+        sdkmanager --list | head -10
+        
+    - name: فحص ملف pubspec.yaml
+      run: |
+        echo "=== فحص ملف pubspec.yaml ==="
+        if [ -f "pubspec.yaml" ]; then
+          echo "✅ ملف pubspec.yaml موجود"
+          echo ""
+          echo "محتوى الملف:"
+          cat pubspec.yaml
+        else
+          echo "❌ ملف pubspec.yaml غير موجود"
+          exit 1
+        fi
+        
+    - name: فحص بنية المشروع
+      run: |
+        echo "=== فحص بنية المشروع ==="
+        echo ""
+        echo "📁 محتويات المجلد:"
+        find . -type f -name "*.dart" | head -20
+        
+        echo ""
+        echo "📁 مجلد android:"
+        if [ -d "android" ]; then
+          echo "✅ مجلد android موجود"
+          ls -la android/
+        else
+          echo "❌ مجلد android غير موجود"
+          exit 1
+        fi
+        
+        echo ""
+        echo "📁 مجلد lib:"
+        if [ -d "lib" ]; then
+          echo "✅ مجلد lib موجود"
+          ls -la lib/
+        else
+          echo "❌ مجلد lib غير موجود"
+          exit 1
+        fi
+        
+    - name: تثبيت التبعيات
+      run: |
+        echo "=== تثبيت التبعيات ==="
+        flutter pub get
+        echo "✅ تم تثبيت التبعيات بنجاح"
+        
+    - name: فحص الكود
+      run: |
+        echo "=== فحص الكود ==="
+        flutter analyze
+        
+    - name: تنظيف وإعادة البناء
+      run: |
+        echo "=== تنظيف البناء السابق ==="
+        flutter clean
+        
+        echo ""
+        echo "=== إعادة تثبيت التبعيات ==="
+        flutter pub get
+        
+        echo ""
+        echo "=== فحص الأخطاء ==="
+        flutter analyze
+        
+    - name: إنشاء تقرير التشخيص
+      run: |
+        echo "# تقرير تشخيص تطبيق الفواتير" > diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        echo "**تاريخ التشخيص:** $(date)" >> diagnostic-report.md
+        echo "**فرع المستودع:** ${{ github.ref_name }}" >> diagnostic-report.md
+        echo "**رقم التحديث:** ${{ github.run_number }}" >> diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        echo "## نتائج التشخيص" >> diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        
+        echo "### ✅ فحص البيئة" >> diagnostic-report.md
+        echo "- Flutter SDK: 3.24.5" >> diagnostic-report.md
+        echo "- JDK: 17" >> diagnostic-report.md
+        echo "- Android SDK API: 33" >> diagnostic-report.md
+        echo "- Build Tools: 33.0.2" >> diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        
+        echo "### ✅ فحص المشروع" >> diagnostic-report.md
+        echo "- pubspec.yaml: موجود ✅" >> diagnostic-report.md
+        echo "- مجلد android: موجود ✅" >> diagnostic-report.md
+        echo "- مجلد lib: موجود ✅" >> diagnostic-report.md
+        echo "- التبعيات: مُثبتة بنجاح ✅" >> diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        
+        echo "## التوصيات" >> diagnostic-report.md
+        echo "" >> diagnostic-report.md
+        echo "1. ✅ المشروع جاهز للبناء" >> diagnostic-report.md
+        echo "2. 🔄 يمكنك الآن تشغيل workflow بناء APK" >> diagnostic-report.md
+        echo "3. 📱 اختر نوع البناء (debug/release) حسب الحاجة" >> diagnostic-report.md
+        echo "4. ⚡ اختر نوع المعالج المناسب لجهازك" >> diagnostic-report.md
+        
+    - name: رفع تقرير التشخيص
+      uses: actions/upload-artifact@v4
+      with:
+        name: diagnostic-report
+        path: diagnostic-report.md
+        retention-days: 30
+        
+    - name: رسالة النتيجة
+      run: |
+        if [ $? -eq 0 ]; then
+          echo "🎉 تم التشخيص بنجاح!"
+          echo ""
+          echo "✅ المشروع جاهز للبناء"
+          echo "📋 يمكنك الآن تشغيل workflow بناء APK"
+          echo ""
+          echo "📖 خطوات متتالية:"
+          echo "1. انتقل إلى تبويب 'Actions'"
+          echo "2. اختر 'بناء تطبيق الفواتير - APK'"
+          echo "3. اضغط 'Run workflow'"
+          echo "4. اختر نوع البناء والمعالج"
+          echo "5. اضغط 'Run workflow' مرة أخرى"
+        else
+          echo "❌ تم العثور على مشاكل في التشخيص"
+          echo ""
+          echo "🔧 مراجعة التقرير لمزيد من التفاصيل"
+        fi
